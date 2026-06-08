@@ -183,7 +183,7 @@
     </main>
 
     <section ref="workspacePane" class="workspace">
-      <div class="workspace-header">
+      <div :key="activeExercise.id" class="workspace-header">
         <div>
           <span class="workspace-label">目前任務步驟</span>
           <h2 class="workspace-title">{{ activeExercise.title }}</h2>
@@ -203,7 +203,7 @@
         <button class="run-button" id="runSql" type="button" :disabled="isBusy || !isReady" @click="runSql">
           <span aria-hidden="true">▶</span> 執行 <span class="btn-kbd">⌘↵</span>
         </button>
-        <button class="submit-button" id="submitSql" type="button" :disabled="isBusy || !isReady" @click="submitSql">
+        <button class="submit-button" id="submitSql" type="button" :class="{ ready: !!result }" :disabled="isBusy || !isReady" @click="submitSql">
           <span aria-hidden="true">✓</span> 送出驗收 <span class="btn-kbd">⌘⇧↵</span>
         </button>
         <span class="toolbar-note">
@@ -217,6 +217,10 @@
           <div>
             <div class="feedback-title">{{ feedback.title }}</div>
             <div class="feedback-body">{{ feedback.body }}</div>
+            <details v-if="feedback.raw" class="feedback-raw">
+              <summary>看 PostgreSQL 原始訊息</summary>
+              <code>{{ feedback.raw }}</code>
+            </details>
             <div v-if="lessonJustCompleted && feedback.type === 'pass'" class="feedback-milestone">
               🎉 「{{ activeLesson.title }}」這一課 {{ activeLessonProgress.total }} 題全數通過！
             </div>
@@ -231,30 +235,13 @@
             </button>
           </div>
         </div>
-        <div v-else class="empty-result">先按「執行」觀察任務結果；按「送出驗收」才會完成這個步驟。</div>
-
-        <div v-if="result && resultRows.length === 0" class="empty-result">
-          {{ result.message || "沒有回傳資料。" }}
-        </div>
-        <table v-else-if="resultRows.length > 0" class="result-table">
-          <thead>
-            <tr>
-              <th v-for="column in resultColumns" :key="column">{{ column }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(row, rowIndex) in resultRows" :key="rowIndex">
-              <td v-for="column in resultColumns" :key="column">{{ formatValue(row[column]) }}</td>
-            </tr>
-          </tbody>
-        </table>
 
         <div class="support-box">
-          <button class="hint-toggle" type="button" @click="showHints = !showHints">
-            {{ showHints ? "收起提示" : "需要提示嗎？" }}
+          <button class="hint-toggle" type="button" :class="{ nudge: feedback?.type === 'fail' }" @click="showHints = !showHints">
+            {{ showHints ? "收起提示" : feedback?.type === 'fail' ? "卡住了？看提示 →" : "需要提示嗎？" }}
           </button>
           <div v-if="showHints" class="support-inner">
-            <details>
+            <details open>
               <summary>提示 1：方向提示</summary>
               <p>{{ activeExercise.hints.direction }}</p>
             </details>
@@ -269,6 +256,28 @@
               </ul>
             </details>
           </div>
+        </div>
+
+        <div v-if="result?.message" class="result-note" :class="{ 'is-mutation': activeExercise.type === 'mutation' }">
+          {{ result.message }}
+        </div>
+        <table v-if="resultRows.length > 0" class="result-table">
+          <thead>
+            <tr>
+              <th v-for="column in resultColumns" :key="column">{{ column }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, rowIndex) in resultRows" :key="rowIndex">
+              <td v-for="column in resultColumns" :key="column">{{ formatValue(row[column]) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div v-if="!result && !feedback" class="empty-result">
+          {{ activeExercise.type === "mutation"
+            ? "這是修改題：先按「執行」套用你的 SQL（沙箱會保留你的修改），再寫一句 SELECT 按「執行」查回來確認資料變了沒；確認 OK 再按「送出驗收」。"
+            : "先按「執行」觀察任務結果；按「送出驗收」才會完成這個步驟。" }}
         </div>
 
         <div v-if="isActiveExerciseCompleted" class="solution-card">
@@ -1035,7 +1044,8 @@ function formatSqlError(error: unknown, sqlText: string) {
   const quotedName = getQuotedName(message);
   const tokenAtPosition = getTokenAtPosition(sqlText, position);
   const positionText = formatSqlPosition(sqlText, position);
-  const originalText = `原始訊息：${message}`;
+  // 原始英文訊息不再串進友善文案（會嚇到新手）；改由 feedback.raw 收進可選的摺疊區。
+  const originalText = "";
 
   if (message === "請先輸入 SQL。") {
     return "請先輸入 SQL，再按「執行」或「送出驗收」。";
@@ -1143,7 +1153,10 @@ async function runSql() {
       await resetDatabase();
       const queryResult = await database.value.query(sqlText);
       const rows = queryResult.rows as SqlRow[];
-      result.value = { rows, message: `已從本題初始資料執行查詢，共 ${rows.length} 筆。` };
+      result.value = {
+        rows,
+        message: `這是執行結果，共 ${rows.length} 筆。覺得對了就按綠色「送出驗收」打勾。`
+      };
     } else {
       // 修改題：用持久沙箱，讓「改一筆 → 再 SELECT 查回來確認」成立。
       // 只有換到別題、或這個沙箱還不屬於本題時才重置，否則保留前一次的修改。
@@ -1167,7 +1180,8 @@ async function runSql() {
     feedback.value = {
       type: "fail",
       title: "SQL 執行失敗",
-      body: formatSqlError(error, sql.value.trim())
+      body: formatSqlError(error, sql.value.trim()),
+      raw: getErrorField(error, "code") ? getErrorMessage(error) : undefined
     };
     errorLine.value = getSqlErrorLine(error, sql.value.trim());
   } finally {
@@ -1276,7 +1290,8 @@ async function submitSql() {
     feedback.value = {
       type: "fail",
       title: "驗收失敗",
-      body: formatSqlError(error, sql.value.trim())
+      body: formatSqlError(error, sql.value.trim()),
+      raw: getErrorField(error, "code") ? getErrorMessage(error) : undefined
     };
     errorLine.value = getSqlErrorLine(error, sql.value.trim());
   } finally {

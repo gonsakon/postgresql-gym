@@ -289,14 +289,15 @@ button:disabled {
 }
 
 .next-button {
-  margin-top: 10px;
+  margin-top: 12px;
   display: inline-flex;
   align-items: center;
   border-radius: var(--radius-sm);
   background: var(--green);
   color: #fff;
-  padding: 8px 14px;
-  font-size: 14px;
+  padding: 11px 18px;
+  font-size: 15px;
+  font-weight: 800;
   box-shadow: var(--shadow-sm);
 }
 
@@ -319,6 +320,68 @@ button:disabled {
 .hint-toggle:hover {
   border-color: var(--amber);
   color: var(--amber);
+}
+
+/* 出錯時把求助入口升級成醒目實線（卡住的人才找得到） */
+.hint-toggle.nudge {
+  border-style: solid;
+  border-color: var(--amber);
+  background: var(--amber-soft);
+  color: var(--amber);
+  font-weight: 800;
+}
+
+/* 結果摘要：mutation 題用來講「資料留在沙箱」這句關鍵訊息，不再被當空狀態 */
+.result-note {
+  margin-bottom: 10px;
+  border-left: 4px solid var(--brand);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: #eef4f9;
+  color: #2a4256;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.result-note.is-mutation {
+  border-left-color: var(--green);
+  background: var(--green-soft);
+  color: #1f4633;
+}
+
+/* 錯誤原始英文：摺疊起來的次要技術細節，不嚇新手 */
+.feedback-raw {
+  margin-top: 7px;
+}
+
+.feedback-raw summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.feedback-raw code {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+/* 換題時輕掃一下右欄任務標頭，把目光帶過來 */
+.workspace-header {
+  animation: task-flash 0.6s ease;
+}
+
+@keyframes task-flash {
+  from {
+    background: var(--blue-soft);
+  }
+  to {
+    background: rgba(255, 254, 250, 0.78);
+  }
 }
 
 .support-inner {
@@ -743,12 +806,13 @@ button:disabled {
   padding: 11px 18px;
   border-radius: var(--radius-sm);
   font-size: 15px;
-  color: #fff;
-  box-shadow: var(--shadow-sm);
 }
 
+/* 執行＝主行動（實心藍） */
 .run-button {
   background: var(--brand);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
 }
 
 .run-button:hover {
@@ -756,22 +820,37 @@ button:disabled {
   box-shadow: var(--shadow-md);
 }
 
+/* 送出驗收：執行過、有結果之前先當次級（淡綠 ghost），引導「先執行」 */
 .submit-button {
+  background: var(--green-soft);
+  color: var(--green);
+  border: 1px solid #9ec3a8;
+}
+
+/* 有結果後升為主行動實心綠，引導「現在可以送出驗收」 */
+.submit-button.ready {
   background: var(--green);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: var(--shadow-sm);
 }
 
 .submit-button:hover {
+  border-color: var(--green);
+}
+
+.submit-button.ready:hover {
   background: #1f5a40;
   box-shadow: var(--shadow-md);
 }
 
 .btn-kbd {
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid currentColor;
   border-radius: 5px;
   padding: 0 5px;
   font-size: 11px;
   font-weight: 700;
-  opacity: 0.92;
+  opacity: 0.6;
 }
 
 .toolbar-note {

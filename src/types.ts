@@ -61,6 +61,7 @@ export interface Feedback {
   type: "pass" | "fail";
   title: string;
   body: string;
+  raw?: string;
 }
 
 export interface ResultState {
