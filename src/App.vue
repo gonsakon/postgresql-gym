@@ -82,6 +82,12 @@
         </template>
       </div>
 
+      <OrderBoard
+        v-if="activeLesson.id === 'ecommerce-case'"
+        :db="database"
+        :refresh-key="boardTick"
+      />
+
       <section class="lesson-block">
         <h2>教學重點</h2>
         <aside class="coach-card normal">
@@ -322,6 +328,7 @@
 <script setup lang="ts">
 import { PGlite } from "@electric-sql/pglite";
 import { computed, nextTick, onMounted, ref, shallowRef, watch } from "vue";
+import OrderBoard from "./OrderBoard.vue";
 import SqlEditor from "./SqlEditor.vue";
 import { futureChapters, lessons, schemaSql, videoModules } from "./courseData";
 import type { CompareOptions, Exercise, Feedback, Lesson, ResultState, SqlRow, SqlValue, VideoModule } from "./types";
@@ -364,6 +371,8 @@ const sandboxOwner = ref<string | null>(null);
 const navCollapsed = ref(loadNavCollapsed());
 // 剛在 mutation 沙箱寫入過的資料表名，用來提供「查回來看看」一鍵驗證按鈕。
 const lastWriteTable = ref<string | null>(null);
+// 訂單牆刷新觸發：每次執行/送出/重置後 +1，讓 OrderBoard 重查沙箱現況。
+const boardTick = ref(0);
 // 學生可拖曳調整編輯器高度（null = 用預設 26vh），記在 localStorage。
 const editorHeight = ref<number | null>(loadEditorHeight());
 // 學生可拖曳調整左欄(課程導覽)與右欄(工作區)寬度（null = 用預設），記在 localStorage。
@@ -1313,6 +1322,7 @@ async function runSql() {
     errorLine.value = getSqlErrorLine(error, sql.value.trim());
   } finally {
     isBusy.value = false;
+    boardTick.value += 1;
   }
 }
 
@@ -1423,6 +1433,7 @@ async function submitSql() {
     errorLine.value = getSqlErrorLine(error, sql.value.trim());
   } finally {
     isBusy.value = false;
+    boardTick.value += 1;
   }
 }
 
@@ -1451,6 +1462,7 @@ async function resetCurrentExercise() {
     };
   } finally {
     isBusy.value = false;
+    boardTick.value += 1;
   }
 }
 

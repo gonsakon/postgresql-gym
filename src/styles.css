@@ -1039,6 +1039,163 @@ button:disabled {
   padding: 16px;
 }
 
+/* 訂單牆：shop_orders 變成看板，依狀態分欄，SQL 改完卡片換欄＋閃光 */
+.order-board {
+  margin: 16px 0 8px;
+  max-width: 860px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  box-shadow: var(--shadow-sm);
+  padding: 14px 16px;
+}
+
+.order-board-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.order-board-head strong {
+  font-size: 15px;
+}
+
+.order-board-sub {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.order-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.order-lane {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.lane-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.lane-label b {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.lane-label.st-pending {
+  background: #fff3df;
+  color: #9a6a12;
+}
+.lane-label.st-paid {
+  background: #e7f0fb;
+  color: var(--brand);
+}
+.lane-label.st-packed {
+  background: #eaf3ec;
+  color: var(--green);
+}
+.lane-label.st-shipped {
+  background: #e2f3ec;
+  color: #1f7a52;
+}
+.lane-label.st-cancelled {
+  background: #f6e6e4;
+  color: var(--red);
+}
+.lane-label.st-refunded {
+  background: #efeaf4;
+  color: #7a4caf;
+}
+
+.lane-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 26px;
+}
+
+.order-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: 7px;
+  background: #fffefa;
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+.order-card.st-pending {
+  border-left-color: #d9a73a;
+}
+.order-card.st-paid {
+  border-left-color: var(--brand);
+}
+.order-card.st-packed {
+  border-left-color: var(--green);
+}
+.order-card.st-shipped {
+  border-left-color: #1f7a52;
+}
+.order-card.st-cancelled,
+.order-card.st-refunded {
+  opacity: 0.65;
+}
+.order-card.st-cancelled {
+  border-left-color: var(--red);
+}
+.order-card.st-refunded {
+  border-left-color: #7a4caf;
+}
+
+.oc-no {
+  font-weight: 800;
+  font-family: var(--mono);
+}
+.oc-name {
+  color: var(--ink);
+}
+.oc-amt {
+  color: var(--muted);
+}
+
+.order-card.flash {
+  animation: order-flash 1.4s ease;
+}
+
+@keyframes order-flash {
+  0% {
+    background: #fff6c2;
+    box-shadow: 0 0 0 2px rgba(217, 167, 58, 0.65);
+    transform: scale(1.07);
+  }
+  100% {
+    background: #fffefa;
+    box-shadow: none;
+    transform: scale(1);
+  }
+}
+
+.lane-empty {
+  color: var(--line-strong);
+  font-size: 12px;
+  align-self: center;
+}
+
 .schema-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
