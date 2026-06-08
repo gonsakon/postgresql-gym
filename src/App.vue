@@ -1,5 +1,14 @@
 <template>
   <div class="app-shell" :class="{ 'nav-collapsed': navCollapsed }" :style="appShellStyle">
+    <button
+      v-if="navCollapsed"
+      class="nav-expand-fab"
+      type="button"
+      title="展開課程選單"
+      @click="toggleNav"
+    >
+      ☰
+    </button>
     <header class="topbar">
       <div class="brand">
         <button
@@ -16,14 +25,6 @@
           <div class="brand-title">PostgreSQL 練習手冊</div>
           <div class="brand-subtitle">正體中文 · 講義 + 沙箱</div>
         </div>
-      </div>
-      <div class="status-strip">
-        <span class="status-pill">{{ totalProgress.done }}/{{ totalProgress.total }} 已完成</span>
-        <span v-if="streak >= 2" class="streak-pill">🔥 連對 {{ streak }}</span>
-        <span class="ready-state">
-          <span class="ready-dot" :class="{ on: isReady }" aria-hidden="true"></span>
-          {{ isReady ? "PostgreSQL 已在瀏覽器中執行" : "沙箱啟動中" }}
-        </span>
       </div>
     </header>
 

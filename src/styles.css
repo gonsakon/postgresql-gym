@@ -75,11 +75,37 @@ button:disabled {
 }
 
 .app-shell {
+  position: relative;
   display: grid;
   grid-template-columns: var(--nav-w, 280px) 6px minmax(0, 1fr) 6px var(--workspace-w, minmax(360px, 42vw));
   grid-template-rows: 40px minmax(0, 1fr);
   height: 100vh;
   overflow: hidden;
+}
+
+/* 課程選單收合時的浮動展開鈕（收合後 logo/☰ 整欄不見，靠這顆叫回來） */
+.nav-expand-fab {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 20;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(255, 254, 250, 0.95);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.nav-expand-fab:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+  transform: none;
 }
 
 /* 左欄收合：把 280px 還給中欄與工作區，整頁變寬。 */
@@ -125,24 +151,54 @@ button:disabled {
   background: #fff;
 }
 
+/* 只在左上角放 logo（佔課程導覽那一欄）；中欄與工作區會升到最頂。 */
 .topbar {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: var(--nav-w, 280px) minmax(0, 1fr);
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
   align-items: center;
+  overflow: hidden;
   border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
   background: rgba(255, 254, 250, 0.92);
   backdrop-filter: blur(10px);
   z-index: 5;
 }
 
 .brand {
-  padding: 0 16px;
+  width: 100%;
+  padding: 0 14px;
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 10px;
-  border-right: 1px solid var(--line);
+}
+
+/* logo 在左上(col1 row1)，課程導覽在它下面(col1 row2)；
+   中欄、工作區與兩條直把手都從最頂(row 1)貫到底，把上方空間讓給編輯器。 */
+.nav {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.col-resizer-left {
+  grid-column: 2;
+  grid-row: 1 / -1;
+}
+
+.content {
+  grid-column: 3;
+  grid-row: 1 / -1;
+}
+
+.col-resizer-right {
+  grid-column: 4;
+  grid-row: 1 / -1;
+}
+
+.workspace {
+  grid-column: 5;
+  grid-row: 1 / -1;
 }
 
 .nav-toggle {
@@ -196,64 +252,6 @@ button:disabled {
 
 .brand-subtitle {
   display: none;
-}
-
-.status-strip {
-  display: flex;
-  align-items: center;
-  justify-self: end;
-  gap: 10px;
-  padding: 0 18px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.status-pill {
-  border-radius: 999px;
-  background: var(--green-soft);
-  color: var(--green);
-  padding: 5px 9px;
-  font-weight: 800;
-}
-
-.streak-pill {
-  border-radius: 999px;
-  background: var(--amber-soft);
-  color: var(--amber);
-  padding: 5px 9px;
-  font-weight: 800;
-}
-
-.ready-state {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.ready-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--line-strong);
-  flex: 0 0 auto;
-}
-
-.ready-dot.on {
-  background: #34a853;
-  box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.5);
-  animation: ready-pulse 2s ease-out infinite;
-}
-
-@keyframes ready-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.45);
-  }
-  70% {
-    box-shadow: 0 0 0 6px rgba(52, 168, 83, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(52, 168, 83, 0);
-  }
 }
 
 .spinner {
@@ -1201,16 +1199,20 @@ button:disabled {
     display: none;
   }
 
+  /* 中小螢幕回到「logo 橫貫頂部 + 上下堆疊」的兩欄版，不用桌機的升頂排法 */
   .topbar {
-    grid-template-columns: 236px minmax(0, 1fr);
+    grid-column: 1 / -1;
+    grid-row: 1;
   }
 
-  .status-strip {
-    display: none;
+  .content {
+    grid-column: 2;
+    grid-row: 2;
   }
 
   .workspace {
     grid-column: 1 / -1;
+    grid-row: 3;
     min-height: 420px;
     border-left: 0;
     border-top: 1px solid var(--line);
