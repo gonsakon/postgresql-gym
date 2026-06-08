@@ -182,7 +182,7 @@
       </details>
     </main>
 
-    <section ref="workspacePane" class="workspace">
+    <section ref="workspacePane" class="workspace" :style="editorHeightStyle">
       <div :key="activeExercise.id" class="workspace-header">
         <div>
           <span class="workspace-label">目前任務步驟</span>
@@ -199,6 +199,15 @@
         @run="runSql"
         @submit="submitSql"
       />
+      <div
+        class="editor-resizer"
+        role="separator"
+        aria-orientation="horizontal"
+        title="拖動調整編輯器高度"
+        @pointerdown="startResize"
+      >
+        <span class="editor-resizer-grip" aria-hidden="true"></span>
+      </div>
       <div class="toolbar">
         <button class="run-button" id="runSql" type="button" :disabled="isBusy || !isReady" @click="runSql">
           <span aria-hidden="true">▶</span> 執行 <span class="btn-kbd">⌘↵</span>
@@ -303,6 +312,7 @@ import type { CompareOptions, Exercise, Feedback, Lesson, ResultState, SqlRow, S
 const STORAGE_KEY = "postgresql-gym-mvp-progress-v2";
 const STREAK_KEY = "postgresql-gym-mvp-streak-v1";
 const NAV_KEY = "postgresql-gym-mvp-nav-collapsed-v1";
+const EDITOR_H_KEY = "postgresql-gym-mvp-editor-height-v1";
 
 const coachImages = {
   normal: "/images/coach/normal.png",
@@ -336,6 +346,8 @@ const sandboxOwner = ref<string | null>(null);
 const navCollapsed = ref(loadNavCollapsed());
 // 剛在 mutation 沙箱寫入過的資料表名，用來提供「查回來看看」一鍵驗證按鈕。
 const lastWriteTable = ref<string | null>(null);
+// 學生可拖曳調整編輯器高度（null = 用預設 26vh），記在 localStorage。
+const editorHeight = ref<number | null>(loadEditorHeight());
 const searchInput = ref<HTMLInputElement | null>(null);
 const sqlEditorComp = ref<{ focus: () => void } | null>(null);
 const errorLine = ref<number | null>(null);
@@ -491,6 +503,51 @@ function toggleNav() {
   } catch {
     /* ignore storage errors */
   }
+}
+
+function loadEditorHeight() {
+  try {
+    const value = Number(localStorage.getItem(EDITOR_H_KEY));
+    return Number.isFinite(value) && value >= 120 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+const editorHeightStyle = computed(() =>
+  editorHeight.value != null ? { "--editor-h": `${editorHeight.value}px` } : {}
+);
+
+function startResize(event: PointerEvent) {
+  event.preventDefault();
+  const handle = event.currentTarget as HTMLElement;
+  const editorEl = handle.previousElementSibling as HTMLElement | null;
+  if (!editorEl) return;
+  const startY = event.clientY;
+  const startHeight = editorEl.getBoundingClientRect().height;
+  document.body.style.userSelect = "none";
+  document.body.style.cursor = "row-resize";
+
+  const onMove = (moveEvent: PointerEvent) => {
+    const delta = moveEvent.clientY - startY;
+    const max = window.innerHeight * 0.6;
+    editorHeight.value = Math.round(Math.max(120, Math.min(max, startHeight + delta)));
+  };
+
+  const onUp = () => {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+    try {
+      if (editorHeight.value != null) localStorage.setItem(EDITOR_H_KEY, String(editorHeight.value));
+    } catch {
+      /* ignore storage errors */
+    }
+  };
+
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
 }
 
 watch(streak, (value) => {

@@ -760,7 +760,35 @@ button:disabled {
   border-left: 1px solid var(--line);
   background: #e4ebd8;
   display: grid;
-  grid-template-rows: auto minmax(170px, 26vh) auto minmax(0, 1fr);
+  grid-template-rows: auto var(--editor-h, minmax(170px, 26vh)) 7px auto minmax(0, 1fr);
+}
+
+/* 編輯器/結果 之間的可拖曳分隔把手 */
+.editor-resizer {
+  position: relative;
+  display: grid;
+  place-items: center;
+  cursor: row-resize;
+  background: var(--line);
+  touch-action: none;
+  transition: background 0.15s ease;
+}
+
+.editor-resizer:hover,
+.editor-resizer:active {
+  background: var(--brand);
+}
+
+.editor-resizer-grip {
+  width: 34px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--line-strong);
+}
+
+.editor-resizer:hover .editor-resizer-grip,
+.editor-resizer:active .editor-resizer-grip {
+  background: #fff;
 }
 
 .workspace-header {
@@ -1320,6 +1348,10 @@ button:disabled {
 
   .editor-host {
     height: 300px;
+  }
+
+  .editor-resizer {
+    display: none;
   }
 
   .toolbar {
