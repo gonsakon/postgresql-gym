@@ -5,9 +5,11 @@
 <script setup lang="ts">
 import { indentWithTab } from "@codemirror/commands";
 import { PostgreSQL, sql } from "@codemirror/lang-sql";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
 import { Decoration, EditorView, keymap } from "@codemirror/view";
+import { tags as t } from "@lezer/highlight";
 import { basicSetup } from "codemirror";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 
@@ -84,6 +86,18 @@ const darkTheme = EditorView.theme(
   { dark: true }
 );
 
+// 深色底專用的鮮明語法高亮（basicSetup 預設那套是給淺底的，套深底會糊）。
+const highlightStyle = HighlightStyle.define([
+  { tag: t.keyword, color: "#82aaff", fontWeight: "600" },
+  { tag: [t.string, t.special(t.string)], color: "#c3e88d" },
+  { tag: [t.number, t.bool, t.null], color: "#f78c6c" },
+  { tag: [t.operator, t.punctuation, t.separator], color: "#89ddff" },
+  { tag: [t.typeName, t.className, t.namespace], color: "#ffcb6b" },
+  { tag: [t.function(t.variableName), t.function(t.propertyName)], color: "#82aaff" },
+  { tag: t.comment, color: "#6b7a99", fontStyle: "italic" },
+  { tag: [t.propertyName, t.variableName], color: "#e7f2ef" }
+]);
+
 function makeState(doc: string) {
   return EditorState.create({
     doc,
@@ -97,6 +111,7 @@ function makeState(doc: string) {
       ),
       basicSetup,
       sql({ dialect: PostgreSQL, schema, upperCaseKeywords: true }),
+      syntaxHighlighting(highlightStyle),
       errorLineField,
       darkTheme,
       EditorView.updateListener.of((update) => {

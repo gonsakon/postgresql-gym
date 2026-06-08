@@ -82,6 +82,20 @@ button:disabled {
   overflow: hidden;
 }
 
+/* 左欄收合：把 280px 還給中欄與工作區，整頁變寬。 */
+.app-shell.nav-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr) minmax(360px, 42vw);
+}
+
+/* 不能用 display:none（會把 nav 移出 grid，導致 content/workspace 遞補錯欄）。
+   讓 nav 留在第一軌但寬度 0、內容裁切。 */
+.app-shell.nav-collapsed .nav {
+  width: 0;
+  padding: 0;
+  border-right: 0;
+  overflow: hidden;
+}
+
 .topbar {
   grid-column: 1 / -1;
   display: grid;
@@ -94,12 +108,32 @@ button:disabled {
 }
 
 .brand {
-  padding: 0 20px;
+  padding: 0 16px;
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 10px;
   border-right: 1px solid var(--line);
+}
+
+.nav-toggle {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.nav-toggle:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+  transform: none;
 }
 
 .brand-mark {
@@ -645,7 +679,7 @@ button:disabled {
   border-left: 1px solid var(--line);
   background: #e4ebd8;
   display: grid;
-  grid-template-rows: auto minmax(200px, 34vh) auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(170px, 26vh) auto minmax(0, 1fr);
 }
 
 .workspace-header {
@@ -1034,6 +1068,10 @@ button:disabled {
   .app-shell {
     grid-template-columns: 236px minmax(0, 1fr);
     grid-template-rows: 72px minmax(52vh, 1fr) minmax(420px, 48vh);
+  }
+
+  .app-shell.nav-collapsed {
+    grid-template-columns: 0 minmax(0, 1fr);
   }
 
   .topbar {

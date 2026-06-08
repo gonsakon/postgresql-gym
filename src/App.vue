@@ -1,7 +1,16 @@
 <template>
-  <div class="app-shell">
+  <div class="app-shell" :class="{ 'nav-collapsed': navCollapsed }">
     <header class="topbar">
       <div class="brand">
+        <button
+          class="nav-toggle"
+          type="button"
+          :aria-pressed="navCollapsed"
+          :title="navCollapsed ? '展開課程選單' : '收合課程選單'"
+          @click="toggleNav"
+        >
+          {{ navCollapsed ? "☰" : "⟨" }}
+        </button>
         <div class="brand-mark" aria-hidden="true">🐘</div>
         <div class="brand-text">
           <div class="brand-title">PostgreSQL 練習手冊</div>
@@ -281,6 +290,7 @@ import type { CompareOptions, Exercise, Feedback, Lesson, ResultState, SqlRow, S
 
 const STORAGE_KEY = "postgresql-gym-mvp-progress-v2";
 const STREAK_KEY = "postgresql-gym-mvp-streak-v1";
+const NAV_KEY = "postgresql-gym-mvp-nav-collapsed-v1";
 
 const coachImages = {
   normal: "/images/coach/normal.png",
@@ -311,6 +321,7 @@ const lessonJustCompleted = ref(false);
 // 持久沙箱：記錄目前沙箱狀態屬於哪個 mutation 題（null = 乾淨種子資料）。
 // 讓 mutation 題可以「改一筆→再查回來確認」，而不是每次執行都重置。
 const sandboxOwner = ref<string | null>(null);
+const navCollapsed = ref(loadNavCollapsed());
 const searchInput = ref<HTMLInputElement | null>(null);
 const sqlEditorComp = ref<{ focus: () => void } | null>(null);
 const errorLine = ref<number | null>(null);
@@ -448,6 +459,23 @@ function loadStreak() {
     return Number.isFinite(saved) && saved > 0 ? saved : 0;
   } catch {
     return 0;
+  }
+}
+
+function loadNavCollapsed() {
+  try {
+    return localStorage.getItem(NAV_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function toggleNav() {
+  navCollapsed.value = !navCollapsed.value;
+  try {
+    localStorage.setItem(NAV_KEY, navCollapsed.value ? "1" : "0");
+  } catch {
+    /* ignore storage errors */
   }
 }
 
