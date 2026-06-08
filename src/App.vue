@@ -17,13 +17,6 @@
           <div class="brand-subtitle">正體中文 · 講義 + 沙箱</div>
         </div>
       </div>
-      <div class="search-wrap">
-        <label class="search-box">
-          <span>搜尋課程或題目...</span>
-          <input ref="searchInput" v-model="search" aria-label="搜尋課程或題目" />
-          <span class="kbd">⌘ K</span>
-        </label>
-      </div>
       <div class="status-strip">
         <span class="status-pill">{{ totalProgress.done }}/{{ totalProgress.total }} 已完成</span>
         <span v-if="streak >= 2" class="streak-pill">🔥 連對 {{ streak }}</span>
@@ -324,7 +317,7 @@
 
 <script setup lang="ts">
 import { PGlite } from "@electric-sql/pglite";
-import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
+import { computed, nextTick, onMounted, ref, shallowRef, watch } from "vue";
 import SqlEditor from "./SqlEditor.vue";
 import { futureChapters, lessons, schemaSql, videoModules } from "./courseData";
 import type { CompareOptions, Exercise, Feedback, Lesson, ResultState, SqlRow, SqlValue, VideoModule } from "./types";
@@ -348,7 +341,6 @@ type CoachState = keyof typeof coachImages;
 const database = shallowRef<PGlite | null>(null);
 const isReady = ref(false);
 const isBusy = ref(false);
-const search = ref("");
 const activeLessonId = ref(lessons[0].id);
 const activeExerciseId = ref(lessons[0].exercises[0].id);
 const sql = ref(lessons[0].exercises[0].starterSql);
@@ -373,7 +365,6 @@ const editorHeight = ref<number | null>(loadEditorHeight());
 // 學生可拖曳調整左欄(課程導覽)與右欄(工作區)寬度（null = 用預設），記在 localStorage。
 const navWidth = ref<number | null>(loadWidth(NAV_W_KEY, 180));
 const workspaceWidth = ref<number | null>(loadWidth(WS_W_KEY, 360));
-const searchInput = ref<HTMLInputElement | null>(null);
 const sqlEditorComp = ref<{ focus: () => void } | null>(null);
 const errorLine = ref<number | null>(null);
 const contentPane = ref<HTMLElement | null>(null);
@@ -397,28 +388,9 @@ const totalProgress = computed(() => {
   return { done, total };
 });
 
-const filteredLessons = computed(() => {
-  const query = search.value.trim().toLowerCase();
-  if (!query) return lessons;
-
-  return lessons
-    .map((lesson) => {
-      const lessonMatched =
-        lesson.title.toLowerCase().includes(query) ||
-        lesson.section.toLowerCase().includes(query) ||
-        lesson.label.toLowerCase().includes(query);
-      const exercises = lesson.exercises.filter((exercise) => {
-        const haystack = `${exercise.title} ${exercise.description} ${exercise.tags.join(" ")}`;
-        return lessonMatched || haystack.toLowerCase().includes(query);
-      });
-      return exercises.length > 0 ? { ...lesson, exercises } : null;
-    })
-    .filter((lesson): lesson is Lesson => Boolean(lesson));
-});
-
 const navSections = computed(() => {
   const groups = new Map<string, Lesson[]>();
-  for (const lesson of filteredLessons.value) {
+  for (const lesson of lessons) {
     if (!groups.has(lesson.section)) groups.set(lesson.section, []);
     groups.get(lesson.section)?.push(lesson);
   }
@@ -1478,13 +1450,6 @@ async function resetCurrentExercise() {
   }
 }
 
-function focusSearch(event: KeyboardEvent) {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-    event.preventDefault();
-    searchInput.value?.focus();
-  }
-}
-
 async function initDatabase() {
   try {
     database.value = new PGlite();
@@ -1500,11 +1465,6 @@ async function initDatabase() {
 }
 
 onMounted(() => {
-  window.addEventListener("keydown", focusSearch);
   void initDatabase();
-});
-
-onUnmounted(() => {
-  window.removeEventListener("keydown", focusSearch);
 });
 </script>
