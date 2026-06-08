@@ -195,8 +195,8 @@
           <span aria-hidden="true">✓</span> 送出驗收 <span class="btn-kbd">⌘⇧↵</span>
         </button>
         <span class="toolbar-note">
-          <span v-if="!isReady" class="spinner" aria-hidden="true"></span>
-          {{ isReady ? "PostgreSQL 沙箱已就緒" : "PostgreSQL 沙箱初始化中..." }}
+          <span v-if="!isReady || isBusy" class="spinner" aria-hidden="true"></span>
+          {{ !isReady ? "PostgreSQL 沙箱初始化中..." : isBusy ? "執行中…" : "PostgreSQL 沙箱已就緒" }}
         </span>
       </div>
       <div class="results">
@@ -271,11 +271,12 @@
 
 <script setup lang="ts">
 import { PGlite } from "@electric-sql/pglite";
-import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
 import { futureChapters, lessons, schemaSql, videoModules } from "./courseData";
 import type { CompareOptions, Exercise, Feedback, Lesson, ResultState, SqlRow, SqlValue, VideoModule } from "./types";
 
 const STORAGE_KEY = "postgresql-gym-mvp-progress-v2";
+const STREAK_KEY = "postgresql-gym-mvp-streak-v1";
 
 const coachImages = {
   normal: "/images/coach/normal.png",
@@ -300,7 +301,7 @@ const completed = ref<Set<string>>(new Set(loadProgress()));
 const result = ref<ResultState | null>(null);
 const feedback = ref<Feedback | null>(null);
 const showHints = ref(false);
-const streak = ref(0);
+const streak = ref(loadStreak());
 const attemptTick = ref(0);
 const lessonJustCompleted = ref(false);
 const searchInput = ref<HTMLInputElement | null>(null);
@@ -433,6 +434,23 @@ function saveProgress() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...completed.value]));
 }
 
+function loadStreak() {
+  try {
+    const saved = Number(localStorage.getItem(STREAK_KEY));
+    return Number.isFinite(saved) && saved > 0 ? saved : 0;
+  } catch {
+    return 0;
+  }
+}
+
+watch(streak, (value) => {
+  try {
+    localStorage.setItem(STREAK_KEY, String(value));
+  } catch {
+    /* ignore storage errors */
+  }
+});
+
 function getLessonProgress(lessonId: string) {
   const lesson = lessons.find((item) => item.id === lessonId) || lessons[0];
   const done = lesson.exercises.filter((exercise) => completed.value.has(exercise.id)).length;
@@ -475,6 +493,7 @@ function setActiveExercise(
   sql.value = getExerciseDraft(exercise);
   result.value = null;
   feedback.value = null;
+  showHints.value = false;
   if (options.focusEditor) focusSqlEditor(options.scrollEditorIntoView);
 }
 
@@ -1113,6 +1132,7 @@ async function submitSql() {
   streak.value = 0;
 
   const exercise = activeExercise.value;
+  const wasAlreadyCompleted = completed.value.has(exercise.id);
 
   try {
     const sqlText = sql.value.trim();
@@ -1189,7 +1209,7 @@ async function submitSql() {
     nextCompleted.add(exercise.id);
     completed.value = nextCompleted;
     saveProgress();
-    streak.value = previousStreak + 1;
+    streak.value = wasAlreadyCompleted ? previousStreak : previousStreak + 1;
     const lessonProgressAfter = getLessonProgress(activeLessonId.value);
     lessonJustCompleted.value = lessonProgressAfter.done === lessonProgressAfter.total;
     feedback.value = {

@@ -13,7 +13,7 @@
   --line-strong: #b9c3ad;
   --paper: #fffefa;
   --panel: #fdfcf6;
-  --nav: #eef3e5;
+  --nav: #e4ebd8;
   --green: #256c4f;
   --green-soft: #e1efe6;
   --blue: #275e8f;
@@ -640,7 +640,7 @@ button:disabled {
   overflow: hidden;
   scroll-margin-top: 84px;
   border-left: 1px solid var(--line);
-  background: #eef3e5;
+  background: #e4ebd8;
   display: grid;
   grid-template-rows: auto minmax(160px, 30vh) auto minmax(0, 1fr);
 }
