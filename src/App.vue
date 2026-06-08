@@ -109,8 +109,11 @@
         </div>
       </section>
 
-      <section class="lesson-block schema-block">
-        <h2>資料表速查</h2>
+      <details class="lesson-block lesson-details schema-block">
+        <summary>
+          <span>資料表速查</span>
+          <span class="summary-meta">6 張資料表</span>
+        </summary>
         <div class="schema-grid">
           <div class="schema-table">
             <strong>members</strong>
@@ -137,7 +140,7 @@
             <code>id, member_id, course_id, status, booked_at, paid_amount</code>
           </div>
         </div>
-      </section>
+      </details>
 
       <details class="lesson-block lesson-details">
         <summary>

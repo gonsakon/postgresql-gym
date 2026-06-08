@@ -976,6 +976,11 @@ button:disabled {
   padding-top: 0;
 }
 
+/* 收合時確實隱藏內容（子層自帶 display:grid 會蓋掉瀏覽器預設的收合隱藏）。 */
+.lesson-details:not([open]) > *:not(summary) {
+  display: none;
+}
+
 .lesson-details summary {
   display: flex;
   align-items: center;
