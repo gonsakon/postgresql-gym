@@ -2,8 +2,11 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand">
-        <div class="brand-title">PostgreSQL 正體中文練習手冊</div>
-        <div class="brand-subtitle">練習室 MVP · 講義 + 沙箱</div>
+        <div class="brand-mark" aria-hidden="true">🐘</div>
+        <div class="brand-text">
+          <div class="brand-title">PostgreSQL 正體中文練習手冊</div>
+          <div class="brand-subtitle">練習室 MVP · 講義 + 沙箱</div>
+        </div>
       </div>
       <div class="search-wrap">
         <label class="search-box">
@@ -14,7 +17,11 @@
       </div>
       <div class="status-strip">
         <span class="status-pill">{{ totalProgress.done }}/{{ totalProgress.total }} 已完成</span>
-        <span>{{ isReady ? "PostgreSQL 已在瀏覽器中執行" : "沙箱啟動中" }}</span>
+        <span v-if="streak >= 2" class="streak-pill">🔥 連對 {{ streak }}</span>
+        <span class="ready-state">
+          <span class="ready-dot" :class="{ on: isReady }" aria-hidden="true"></span>
+          {{ isReady ? "PostgreSQL 已在瀏覽器中執行" : "沙箱啟動中" }}
+        </span>
       </div>
     </header>
 
@@ -178,44 +185,38 @@
         v-model="sql"
         class="editor"
         spellcheck="false"
-        @keydown.tab.prevent="insertTab"
+        @keydown="handleEditorKeydown"
       ></textarea>
       <div class="toolbar">
-        <button class="run-button" id="runSql" type="button" :disabled="isBusy || !isReady" @click="runSql">執行</button>
-        <button class="submit-button" id="submitSql" type="button" :disabled="isBusy || !isReady" @click="submitSql">送出驗收</button>
-        <span class="toolbar-note">{{ isReady ? "PostgreSQL 沙箱已就緒" : "PostgreSQL 沙箱初始化中..." }}</span>
+        <button class="run-button" id="runSql" type="button" :disabled="isBusy || !isReady" @click="runSql">
+          <span aria-hidden="true">▶</span> 執行 <span class="btn-kbd">⌘↵</span>
+        </button>
+        <button class="submit-button" id="submitSql" type="button" :disabled="isBusy || !isReady" @click="submitSql">
+          <span aria-hidden="true">✓</span> 送出驗收 <span class="btn-kbd">⌘⇧↵</span>
+        </button>
+        <span class="toolbar-note">
+          <span v-if="!isReady" class="spinner" aria-hidden="true"></span>
+          {{ isReady ? "PostgreSQL 沙箱已就緒" : "PostgreSQL 沙箱初始化中..." }}
+        </span>
       </div>
       <div class="results">
-        <div class="hint-box support-box">
-          <strong>任務支援</strong>
-          <details>
-            <summary>提示 1：方向提示</summary>
-            <p>{{ activeExercise.hints.direction }}</p>
-          </details>
-          <details>
-            <summary>提示 2：SQL 骨架</summary>
-            <pre class="syntax"><code>{{ safeSkeleton }}</code></pre>
-          </details>
-          <details>
-            <summary>提示 3：驗收前檢查</summary>
-            <ul class="support-checklist">
-              <li v-for="item in taskChecklist" :key="item">{{ item }}</li>
-            </ul>
-          </details>
-        </div>
-
-        <div v-if="isActiveExerciseCompleted" class="solution-card">
-          <strong>通過後參考解法</strong>
-          <pre class="syntax"><code>{{ activeExercise.hints.answer }}</code></pre>
-        </div>
-        <div v-else class="locked-solution">參考解法會在這個任務通過後開放。</div>
-
         <div v-if="feedback" class="feedback" :class="feedback.type">
           <img class="feedback-coach" :src="coachImages[feedbackCoachState]" alt="" />
           <div>
             <div class="feedback-title">{{ feedback.title }}</div>
             <div class="feedback-body">{{ feedback.body }}</div>
+            <div v-if="lessonJustCompleted && feedback.type === 'pass'" class="feedback-milestone">
+              🎉 「{{ activeLesson.title }}」這一課 {{ activeLessonProgress.total }} 題全數通過！
+            </div>
             <div class="feedback-coach-line">{{ feedbackCoachMessage }}</div>
+            <button
+              v-if="feedback.type === 'pass' && nextExerciseTarget"
+              class="next-button"
+              type="button"
+              @click="goToNextExercise"
+            >
+              下一題：{{ nextExerciseTarget.title }} →
+            </button>
           </div>
         </div>
         <div v-else class="empty-result">先按「執行」觀察任務結果；按「送出驗收」才會完成這個步驟。</div>
@@ -235,6 +236,34 @@
             </tr>
           </tbody>
         </table>
+
+        <div class="support-box">
+          <button class="hint-toggle" type="button" @click="showHints = !showHints">
+            {{ showHints ? "收起提示" : "需要提示嗎？" }}
+          </button>
+          <div v-if="showHints" class="support-inner">
+            <details>
+              <summary>提示 1：方向提示</summary>
+              <p>{{ activeExercise.hints.direction }}</p>
+            </details>
+            <details>
+              <summary>提示 2：SQL 骨架</summary>
+              <pre class="syntax"><code>{{ safeSkeleton }}</code></pre>
+            </details>
+            <details>
+              <summary>提示 3：驗收前檢查</summary>
+              <ul class="support-checklist">
+                <li v-for="item in taskChecklist" :key="item">{{ item }}</li>
+              </ul>
+            </details>
+          </div>
+        </div>
+
+        <div v-if="isActiveExerciseCompleted" class="solution-card">
+          <strong>通過後參考解法</strong>
+          <pre class="syntax"><code>{{ activeExercise.hints.answer }}</code></pre>
+        </div>
+        <div v-else class="locked-solution">參考解法會在這個任務通過後開放。</div>
       </div>
     </section>
   </div>
@@ -270,6 +299,10 @@ const draftSqlByExerciseId = ref<Record<string, string>>({
 const completed = ref<Set<string>>(new Set(loadProgress()));
 const result = ref<ResultState | null>(null);
 const feedback = ref<Feedback | null>(null);
+const showHints = ref(false);
+const streak = ref(0);
+const attemptTick = ref(0);
+const lessonJustCompleted = ref(false);
 const searchInput = ref<HTMLInputElement | null>(null);
 const sqlEditor = ref<HTMLTextAreaElement | null>(null);
 const contentPane = ref<HTMLElement | null>(null);
@@ -332,17 +365,32 @@ const feedbackCoachState = computed<CoachState>(() => {
   return "normal";
 });
 
+const passCoachLines = [
+  "做得不錯，這一步很穩。先把這個手感記住。",
+  "漂亮，這題的條件你抓對了，繼續保持節奏。",
+  "很好，SQL 正確命中資料了。下一題再練一個新動作。",
+  "穩，這種題你已經能一次到位了。"
+];
+
+const failCoachLines = [
+  "別急，這通常只是欄位、條件或排序的小卡點。先看錯誤訊息，再用「執行」觀察結果怎麼變。",
+  "沒關係，差一點點。把錯誤訊息讀一次，多半是條件或欄位的小地方。",
+  "卡住很正常。先按「執行」看現在查到什麼，再對一下題目要的欄位。"
+];
+
 const feedbackCoachMessage = computed(() => {
   if (totalProgress.value.done === totalProgress.value.total && totalProgress.value.total > 0) {
     return "很穩，這一輪題庫都打勾了。先把這個節奏記住，下一輪再慢慢加 JOIN 和 GROUP BY。";
   }
 
   if (feedback.value?.type === "pass") {
-    return "做得不錯，這一步很穩。你剛剛讓 SQL 正確找到資料，先把這個手感記住。";
+    if (streak.value >= 5) return `已經連對 ${streak.value} 題了，手感很燙，繼續！`;
+    if (streak.value >= 3) return `連對 ${streak.value} 題，節奏抓到了，保持下去。`;
+    return passCoachLines[attemptTick.value % passCoachLines.length];
   }
 
   if (feedback.value?.type === "fail") {
-    return "別急，這通常只是欄位、條件或排序的小卡點。先看錯誤訊息，再用「執行」觀察結果怎麼變。";
+    return failCoachLines[attemptTick.value % failCoachLines.length];
   }
 
   return "「執行」會先看結果，「送出驗收」才會驗收並打勾。";
@@ -354,7 +402,21 @@ const resultColumns = computed(() => (resultRows.value.length > 0 ? Object.keys(
 
 const isActiveExerciseCompleted = computed(() => completed.value.has(activeExercise.value.id));
 
-const safeSkeleton = computed(() => buildSafeSkeleton(activeExercise.value));
+const nextExerciseTarget = computed(() => {
+  const flat = allExercises.value;
+  const currentIndex = flat.findIndex((exercise) => exercise.id === activeExercise.value.id);
+  const pickFrom = (start: number, end: number) => {
+    for (let index = start; index < end; index += 1) {
+      if (!completed.value.has(flat[index].id)) {
+        return { lessonId: flat[index].lessonId, exerciseId: flat[index].id, title: flat[index].title };
+      }
+    }
+    return null;
+  };
+  return pickFrom(currentIndex + 1, flat.length) || pickFrom(0, currentIndex);
+});
+
+const safeSkeleton = computed(() => activeExercise.value.hints.skeleton);
 
 const taskChecklist = computed(() => buildTaskChecklist(activeExercise.value));
 
@@ -414,6 +476,19 @@ function setActiveExercise(
   result.value = null;
   feedback.value = null;
   if (options.focusEditor) focusSqlEditor(options.scrollEditorIntoView);
+}
+
+function goToNextExercise() {
+  const target = nextExerciseTarget.value;
+  if (!target) return;
+  const stackedLayout = isStackedLayout();
+  setActiveExercise(target.lessonId, target.exerciseId, {
+    focusEditor: true,
+    scrollEditorIntoView: stackedLayout
+  });
+  nextTick(() => {
+    if (!stackedLayout && contentPane.value) contentPane.value.scrollTop = 0;
+  });
 }
 
 function getLessonVideoModules(lesson: Lesson): VideoModule[] {
@@ -511,48 +586,6 @@ function saveExerciseDraft(exerciseId: string, sqlText: string) {
 
 function getExerciseDraft(exercise: Exercise) {
   return draftSqlByExerciseId.value[exercise.id] ?? exercise.starterSql;
-}
-
-function buildSafeSkeleton(exercise: Exercise) {
-  const requirements = exercise.requires || [];
-
-  if (requirements.includes("INSERT")) {
-    return `INSERT INTO 資料表 (欄位一, 欄位二, ...)
-VALUES (值一, 值二, ...);`;
-  }
-
-  if (requirements.includes("UPDATE")) {
-    return `UPDATE 資料表
-SET 要修改的欄位 = 新值
-WHERE 只鎖定這一筆資料的條件;`;
-  }
-
-  if (requirements.includes("DELETE")) {
-    return `DELETE FROM 資料表
-WHERE 只刪除這一筆資料的條件;`;
-  }
-
-  if (requirements.includes("ORDER BY") && requirements.includes("LIMIT")) {
-    return `SELECT 要看的欄位
-FROM 資料表
-ORDER BY 排序欄位 排序方向
-LIMIT 筆數;`;
-  }
-
-  if (requirements.includes("ORDER BY")) {
-    return `SELECT 要看的欄位
-FROM 資料表
-ORDER BY 排序欄位 排序方向;`;
-  }
-
-  if (requirements.includes("WHERE")) {
-    return `SELECT 要看的欄位
-FROM 資料表
-WHERE 欄位 運算子 條件值;`;
-  }
-
-  return `SELECT 要看的欄位
-FROM 資料表;`;
 }
 
 function buildTaskChecklist(exercise: Exercise) {
@@ -988,6 +1021,11 @@ function formatSqlError(error: unknown, sqlText: string) {
     return `欄位型態不一致。文字要用單引號，數字不要加引號，日期請用像 '2026-07-10' 的格式。${positionText} ${originalText}`;
   }
 
+  if (code === "42803" || /must appear in the GROUP BY clause|aggregate function/i.test(message)) {
+    const groupingColumn = quotedName ? quotedName.replace(/^[^.]+\./, "") : "";
+    return `GROUP BY 漏掉欄位了。SELECT 裡只要不是放進聚合函式（COUNT、SUM、AVG…）的欄位${groupingColumn ? `（這次是 ${groupingColumn}）` : ""}，都要一起寫進 GROUP BY。${positionText} ${originalText}`;
+  }
+
   if (code === "42601" || /syntax error/i.test(message)) {
     return `SQL 語法卡住了，通常是關鍵字拼錯、順序放錯，或少了逗號/分號/引號。先檢查 SELECT、FROM、WHERE、ORDER BY、LIMIT 的拼字和順序。${positionText} ${originalText}`;
   }
@@ -1005,6 +1043,7 @@ async function runSql() {
   isBusy.value = true;
   feedback.value = null;
   result.value = null;
+  lessonJustCompleted.value = false;
 
   try {
     const sqlText = sql.value.trim();
@@ -1068,6 +1107,10 @@ async function submitSql() {
   isBusy.value = true;
   feedback.value = null;
   result.value = null;
+  lessonJustCompleted.value = false;
+  attemptTick.value += 1;
+  const previousStreak = streak.value;
+  streak.value = 0;
 
   const exercise = activeExercise.value;
 
@@ -1146,6 +1189,9 @@ async function submitSql() {
     nextCompleted.add(exercise.id);
     completed.value = nextCompleted;
     saveProgress();
+    streak.value = previousStreak + 1;
+    const lessonProgressAfter = getLessonProgress(activeLessonId.value);
+    lessonJustCompleted.value = lessonProgressAfter.done === lessonProgressAfter.total;
     feedback.value = {
       type: "pass",
       title: "通過，這題已打勾",
@@ -1167,6 +1213,7 @@ async function resetCurrentExercise() {
   isBusy.value = true;
   feedback.value = null;
   result.value = null;
+  lessonJustCompleted.value = false;
   sql.value = activeExercise.value.starterSql;
   saveExerciseDraft(activeExercise.value.id, activeExercise.value.starterSql);
 
@@ -1185,6 +1232,21 @@ async function resetCurrentExercise() {
     };
   } finally {
     isBusy.value = false;
+  }
+}
+
+function handleEditorKeydown(event: KeyboardEvent) {
+  if (event.key === "Tab") {
+    event.preventDefault();
+    insertTab(event);
+    return;
+  }
+
+  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+    event.preventDefault();
+    if (isBusy.value || !isReady.value) return;
+    if (event.shiftKey) void submitSql();
+    else void runSql();
   }
 }
 

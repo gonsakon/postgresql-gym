@@ -252,7 +252,7 @@ FROM members;`,
   },
   {
     id: "select-columns",
-    section: "建立 SQL 資料表",
+    section: "SELECT 選欄位",
     title: "01 SELECT：選你真的需要的欄位",
     label: "W5-01",
     lead:
@@ -417,7 +417,7 @@ FROM members;`,
   },
   {
     id: "where-one-condition",
-    section: "SQL 語法教學",
+    section: "WHERE 篩選條件",
     title: "02 WHERE：一次只加一個條件",
     label: "W5-02",
     lead:
@@ -3325,7 +3325,7 @@ ORDER BY status;`,
     lead:
       "最後一章把前面技能包成情境任務。你不是在刷語法，而是在幫後台找資料異常。",
     mission:
-      "LiveFit 後台出現幾個營運疑問：重複報名、沒有報名的課、未出貨訂單、收入集中。海姐請你用 SQL 做第一輪事故調查。",
+      "八月帳目對不起來了：有會員投訴被重複扣堂數、幾筆大額訂單卡著沒出貨、收入又異常集中在少數人身上。海姐把後台資料攤在你面前——「這次不是刷題，是辦案。我們用 SQL 一條一條把異常揪出來，最後寫一份結案摘要。」",
     coachLine:
       "情境題不要急著寫很長。先問：我要哪張表？要不要 JOIN？要不要 GROUP BY？有沒有子查詢比較清楚？",
     teaching:
@@ -3712,7 +3712,7 @@ ORDER BY id;`,
     )
   ) AS courses_without_booking;`
         },
-        successMessage: "漂亮，你把兩個事故指標整理成一列摘要，這很像後台儀表板的第一步。",
+        successMessage: "結案。你把重複報名與無人報名兩個事故指標收斂成一列摘要——這就是遞給主管的結案報告第一行。八月的帳，查清楚了。",
         referenceSql: `SELECT
   (
     SELECT COUNT(*)::int
