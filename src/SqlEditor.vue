@@ -71,7 +71,7 @@ const schema = {
 
 const darkTheme = EditorView.theme(
   {
-    "&": { color: "#e7f2ef", backgroundColor: "#101827", height: "100%", minHeight: "240px" },
+    "&": { color: "#e7f2ef", backgroundColor: "#101827", height: "100%" },
     ".cm-content": { fontFamily: "var(--mono)", caretColor: "#e7f2ef", padding: "14px 0" },
     ".cm-gutters": { backgroundColor: "#0c1320", color: "#5b6b86", border: "none" },
     ".cm-activeLine": { backgroundColor: "rgba(255, 255, 255, 0.04)" },
@@ -161,7 +161,7 @@ defineExpose({
 <style scoped>
 .cm-host {
   height: 100%;
-  min-height: 240px;
+  min-height: 0;
   overflow: hidden;
   border-bottom: 1px solid var(--line);
 }
