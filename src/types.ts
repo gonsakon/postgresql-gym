@@ -48,6 +48,7 @@ export interface Lesson {
   teaching: string;
   syntax: string;
   isCase?: boolean;
+  caseBrief?: string;
   exercises: Exercise[];
 }
 

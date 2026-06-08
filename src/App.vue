@@ -75,8 +75,11 @@
       </section>
 
       <div v-if="activeLesson.isCase" class="case-banner">
-        <strong>案件模式</strong><br />
-        這裡不是單題刷 SQL，而是先讀一份既有情境資料集，再一步步查詢、修改與驗收。
+        <template v-if="activeLesson.caseBrief">{{ activeLesson.caseBrief }}</template>
+        <template v-else>
+          <strong>案件模式</strong><br />
+          這裡不是單題刷 SQL，而是先讀一份既有情境資料集，再一步步查詢、修改與驗收。
+        </template>
       </div>
 
       <section class="lesson-block">
