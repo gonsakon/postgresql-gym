@@ -754,6 +754,7 @@ button:disabled {
   background: #e4ebd8;
   display: grid;
   grid-template-rows: auto var(--editor-h, clamp(180px, 28vh, 360px)) 7px auto auto;
+  align-content: start;
 }
 
 /* 編輯器/結果 之間的可拖曳分隔把手 */
