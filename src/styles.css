@@ -750,12 +750,13 @@ button:disabled {
 
 .workspace {
   min-width: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   scroll-margin-top: 84px;
   border-left: 1px solid var(--line);
   background: #e4ebd8;
   display: grid;
-  grid-template-rows: auto var(--editor-h, minmax(170px, 26vh)) 7px auto minmax(0, 1fr);
+  grid-template-rows: auto var(--editor-h, clamp(180px, 28vh, 360px)) 7px auto auto;
 }
 
 /* 編輯器/結果 之間的可拖曳分隔把手 */
@@ -904,7 +905,6 @@ button:disabled {
 }
 
 .results {
-  overflow: auto;
   padding: 20px 22px;
 }
 
