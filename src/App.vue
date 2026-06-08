@@ -1,5 +1,5 @@
 <template>
-  <div class="app-shell" :class="{ 'nav-collapsed': navCollapsed }">
+  <div class="app-shell" :class="{ 'nav-collapsed': navCollapsed }" :style="appShellStyle">
     <header class="topbar">
       <div class="brand">
         <button
@@ -56,6 +56,16 @@
         </button>
       </div>
     </aside>
+
+    <div
+      class="col-resizer col-resizer-left"
+      role="separator"
+      aria-orientation="vertical"
+      title="拖動調整課程選單寬度"
+      @pointerdown="startColResize($event, 'left')"
+    >
+      <span class="col-resizer-grip" aria-hidden="true"></span>
+    </div>
 
     <main ref="contentPane" class="content">
       <span class="eyebrow">{{ activeLesson.section }} · {{ activeLesson.label }}</span>
@@ -181,6 +191,16 @@
         </ul>
       </details>
     </main>
+
+    <div
+      class="col-resizer col-resizer-right"
+      role="separator"
+      aria-orientation="vertical"
+      title="拖動調整工作區寬度"
+      @pointerdown="startColResize($event, 'right')"
+    >
+      <span class="col-resizer-grip" aria-hidden="true"></span>
+    </div>
 
     <section ref="workspacePane" class="workspace" :style="editorHeightStyle">
       <div :key="activeExercise.id" class="workspace-header">
@@ -313,6 +333,8 @@ const STORAGE_KEY = "postgresql-gym-mvp-progress-v2";
 const STREAK_KEY = "postgresql-gym-mvp-streak-v1";
 const NAV_KEY = "postgresql-gym-mvp-nav-collapsed-v1";
 const EDITOR_H_KEY = "postgresql-gym-mvp-editor-height-v1";
+const NAV_W_KEY = "postgresql-gym-mvp-nav-width-v1";
+const WS_W_KEY = "postgresql-gym-mvp-workspace-width-v1";
 
 const coachImages = {
   normal: "/images/coach/normal.png",
@@ -348,6 +370,9 @@ const navCollapsed = ref(loadNavCollapsed());
 const lastWriteTable = ref<string | null>(null);
 // 學生可拖曳調整編輯器高度（null = 用預設 26vh），記在 localStorage。
 const editorHeight = ref<number | null>(loadEditorHeight());
+// 學生可拖曳調整左欄(課程導覽)與右欄(工作區)寬度（null = 用預設），記在 localStorage。
+const navWidth = ref<number | null>(loadWidth(NAV_W_KEY, 180));
+const workspaceWidth = ref<number | null>(loadWidth(WS_W_KEY, 360));
 const searchInput = ref<HTMLInputElement | null>(null);
 const sqlEditorComp = ref<{ focus: () => void } | null>(null);
 const errorLine = ref<number | null>(null);
@@ -517,6 +542,56 @@ function loadEditorHeight() {
 const editorHeightStyle = computed(() =>
   editorHeight.value != null ? { "--editor-h": `${editorHeight.value}px` } : {}
 );
+
+function loadWidth(key: string, min: number) {
+  try {
+    const value = Number(localStorage.getItem(key));
+    return Number.isFinite(value) && value >= min ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+const appShellStyle = computed(() => {
+  const style: Record<string, string> = {};
+  if (navWidth.value != null) style["--nav-w"] = `${navWidth.value}px`;
+  if (workspaceWidth.value != null) style["--workspace-w"] = `${workspaceWidth.value}px`;
+  return style;
+});
+
+function startColResize(event: PointerEvent, side: "left" | "right") {
+  event.preventDefault();
+  const startX = event.clientX;
+  const navStart = document.querySelector(".nav")?.getBoundingClientRect().width ?? 280;
+  const wsStart = document.querySelector(".workspace")?.getBoundingClientRect().width ?? 480;
+  document.body.style.userSelect = "none";
+  document.body.style.cursor = "col-resize";
+
+  const onMove = (moveEvent: PointerEvent) => {
+    const dx = moveEvent.clientX - startX;
+    if (side === "left") {
+      navWidth.value = Math.round(Math.max(180, Math.min(460, navStart + dx)));
+    } else {
+      workspaceWidth.value = Math.round(Math.max(360, Math.min(window.innerWidth * 0.6, wsStart - dx)));
+    }
+  };
+
+  const onUp = () => {
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+    try {
+      if (side === "left" && navWidth.value != null) localStorage.setItem(NAV_W_KEY, String(navWidth.value));
+      if (side === "right" && workspaceWidth.value != null) localStorage.setItem(WS_W_KEY, String(workspaceWidth.value));
+    } catch {
+      /* ignore storage errors */
+    }
+  };
+
+  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointerup", onUp);
+}
 
 function startResize(event: PointerEvent) {
   event.preventDefault();

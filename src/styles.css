@@ -76,7 +76,7 @@ button:disabled {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) minmax(360px, 42vw);
+  grid-template-columns: var(--nav-w, 280px) 6px minmax(0, 1fr) 6px var(--workspace-w, minmax(360px, 42vw));
   grid-template-rows: 72px minmax(0, 1fr);
   height: 100vh;
   overflow: hidden;
@@ -84,22 +84,51 @@ button:disabled {
 
 /* 左欄收合：把 280px 還給中欄與工作區，整頁變寬。 */
 .app-shell.nav-collapsed {
-  grid-template-columns: 0 minmax(0, 1fr) minmax(360px, 42vw);
+  grid-template-columns: 0 0 minmax(0, 1fr) 6px var(--workspace-w, minmax(360px, 42vw));
 }
 
 /* 不能用 display:none（會把 nav 移出 grid，導致 content/workspace 遞補錯欄）。
    讓 nav 留在第一軌但寬度 0、內容裁切。 */
-.app-shell.nav-collapsed .nav {
+.app-shell.nav-collapsed .nav,
+.app-shell.nav-collapsed .col-resizer-left {
   width: 0;
   padding: 0;
   border-right: 0;
   overflow: hidden;
 }
 
+/* 左右欄位之間的可拖曳直把手 */
+.col-resizer {
+  position: relative;
+  display: grid;
+  place-items: center;
+  cursor: col-resize;
+  background: var(--line);
+  touch-action: none;
+  transition: background 0.15s ease;
+}
+
+.col-resizer:hover,
+.col-resizer:active {
+  background: var(--brand);
+}
+
+.col-resizer-grip {
+  width: 3px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--line-strong);
+}
+
+.col-resizer:hover .col-resizer-grip,
+.col-resizer:active .col-resizer-grip {
+  background: #fff;
+}
+
 .topbar {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) auto;
+  grid-template-columns: var(--nav-w, 280px) minmax(0, 1fr) auto;
   align-items: center;
   border-bottom: 1px solid var(--line);
   background: rgba(255, 254, 250, 0.92);
@@ -1200,6 +1229,11 @@ button:disabled {
 
   .app-shell.nav-collapsed {
     grid-template-columns: 0 minmax(0, 1fr);
+  }
+
+  /* 直把手只在桌機三欄時有意義；中小螢幕（2 欄/堆疊）隱藏 */
+  .col-resizer {
+    display: none;
   }
 
   .topbar {
