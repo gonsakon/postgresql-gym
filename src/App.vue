@@ -91,7 +91,7 @@
         <p>{{ activeLesson.teaching }}</p>
         <pre class="syntax"><code>{{ activeLesson.syntax }}</code></pre>
         <div class="hint-box">
-          前幾關先用 members，Node.js 對照題會用 credit_packages；情境任務會先推薦既有資料集，再讓學生改一點 SQL 看結果怎麼變。
+          這幾關先用 members 這張表建立手感，之後會慢慢加入 credit_packages，情境關卡還會遇到更多資料表。
         </div>
       </section>
 
@@ -160,7 +160,7 @@
           <span>影音課程對照</span>
           <span class="summary-meta">{{ visibleVideoModules.length }} 個相關章節</span>
         </summary>
-        <p>這裡只顯示目前這段練習對應的影音章節，其他進階課程先收起來，避免一開始壓力太大。</p>
+        <p>這一關用得到的影音章節都整理在這裡，想搭配影片複習可以點開來看。</p>
         <div class="video-module-list">
           <article v-for="module in visibleVideoModules" :key="module.title" class="video-module">
             <div>
@@ -172,7 +172,7 @@
             </ul>
           </article>
         </div>
-        <p class="video-summary">另外 {{ hiddenVideoModuleCount }} 個影音章節已先記錄在系統裡，但不在這個新手單元全部展開。</p>
+        <p class="video-summary">更進階的章節（還有 {{ hiddenVideoModuleCount }} 個）會在後面的關卡陸續用到。</p>
       </details>
 
       <details v-if="futureChapters.length > 0" class="lesson-block lesson-details">
