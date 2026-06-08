@@ -260,6 +260,9 @@
 
         <div v-if="result?.message" class="result-note" :class="{ 'is-mutation': activeExercise.type === 'mutation' }">
           {{ result.message }}
+          <button v-if="lastWriteTable && resultRows.length === 0" class="peek-button" type="button" @click="peekTable">
+            查回來看看 {{ lastWriteTable }} →
+          </button>
         </div>
         <table v-if="resultRows.length > 0" class="result-table">
           <thead>
@@ -331,6 +334,8 @@ const lessonJustCompleted = ref(false);
 // 讓 mutation 題可以「改一筆→再查回來確認」，而不是每次執行都重置。
 const sandboxOwner = ref<string | null>(null);
 const navCollapsed = ref(loadNavCollapsed());
+// 剛在 mutation 沙箱寫入過的資料表名，用來提供「查回來看看」一鍵驗證按鈕。
+const lastWriteTable = ref<string | null>(null);
 const searchInput = ref<HTMLInputElement | null>(null);
 const sqlEditorComp = ref<{ focus: () => void } | null>(null);
 const errorLine = ref<number | null>(null);
@@ -496,6 +501,11 @@ watch(streak, (value) => {
   }
 });
 
+// 卡住（驗收/執行失敗）時主動展開提示，讓求助零點擊。
+watch(feedback, (value) => {
+  if (value?.type === "fail") showHints.value = true;
+});
+
 function getLessonProgress(lessonId: string) {
   const lesson = lessons.find((item) => item.id === lessonId) || lessons[0];
   const done = lesson.exercises.filter((exercise) => completed.value.has(exercise.id)).length;
@@ -540,7 +550,14 @@ function setActiveExercise(
   feedback.value = null;
   showHints.value = false;
   errorLine.value = null;
+  lastWriteTable.value = null;
   if (options.focusEditor) focusSqlEditor(options.scrollEditorIntoView);
+}
+
+function peekTable() {
+  if (!lastWriteTable.value) return;
+  sql.value = `SELECT * FROM ${lastWriteTable.value} ORDER BY id DESC LIMIT 10;`;
+  void runSql();
 }
 
 function goToNextExercise() {
@@ -1123,6 +1140,7 @@ async function runSql() {
   result.value = null;
   lessonJustCompleted.value = false;
   errorLine.value = null;
+  lastWriteTable.value = null;
 
   try {
     const sqlText = sql.value.trim();
@@ -1170,9 +1188,10 @@ async function runSql() {
         result.value = { rows, message: `沙箱目前狀態的查詢結果，共 ${rows.length} 筆。` };
       } else {
         await database.value.exec(sqlText);
+        lastWriteTable.value = featureSql.match(/\b(?:INTO|UPDATE|FROM)\s+([A-Za-z_][A-Za-z0-9_]*)/i)?.[1] ?? null;
         result.value = {
           rows: [],
-          message: "已套用到沙箱。可以再寫一句 SELECT 按「執行」查回來確認；沙箱會保留你的修改，直到換題或按「重置本題」。送出驗收時系統會用乾淨資料重新檢查。"
+          message: "已套用到沙箱。沙箱會保留你的修改，直到換題或按「重置本題」；送出驗收時系統會用乾淨資料重新檢查。"
         };
       }
     }

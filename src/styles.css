@@ -349,6 +349,24 @@ button:disabled {
   color: #1f4633;
 }
 
+.peek-button {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 8px;
+  border: 1px solid var(--green);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--green);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.peek-button:hover {
+  background: var(--green);
+  color: #fff;
+}
+
 /* 錯誤原始英文：摺疊起來的次要技術細節，不嚇新手 */
 .feedback-raw {
   margin-top: 7px;
