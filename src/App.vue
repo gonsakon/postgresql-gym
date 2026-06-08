@@ -179,14 +179,14 @@
         </div>
         <button class="reset-button" id="resetDb" type="button" :disabled="isBusy" @click="resetCurrentExercise">重置本題</button>
       </div>
-      <textarea
-        id="sqlEditor"
-        ref="sqlEditor"
+      <SqlEditor
+        ref="sqlEditorComp"
         v-model="sql"
-        class="editor"
-        spellcheck="false"
-        @keydown="handleEditorKeydown"
-      ></textarea>
+        :error-line="errorLine"
+        class="editor-host"
+        @run="runSql"
+        @submit="submitSql"
+      />
       <div class="toolbar">
         <button class="run-button" id="runSql" type="button" :disabled="isBusy || !isReady" @click="runSql">
           <span aria-hidden="true">▶</span> 執行 <span class="btn-kbd">⌘↵</span>
@@ -272,6 +272,7 @@
 <script setup lang="ts">
 import { PGlite } from "@electric-sql/pglite";
 import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from "vue";
+import SqlEditor from "./SqlEditor.vue";
 import { futureChapters, lessons, schemaSql, videoModules } from "./courseData";
 import type { CompareOptions, Exercise, Feedback, Lesson, ResultState, SqlRow, SqlValue, VideoModule } from "./types";
 
@@ -304,8 +305,12 @@ const showHints = ref(false);
 const streak = ref(loadStreak());
 const attemptTick = ref(0);
 const lessonJustCompleted = ref(false);
+// 持久沙箱：記錄目前沙箱狀態屬於哪個 mutation 題（null = 乾淨種子資料）。
+// 讓 mutation 題可以「改一筆→再查回來確認」，而不是每次執行都重置。
+const sandboxOwner = ref<string | null>(null);
 const searchInput = ref<HTMLInputElement | null>(null);
-const sqlEditor = ref<HTMLTextAreaElement | null>(null);
+const sqlEditorComp = ref<{ focus: () => void } | null>(null);
+const errorLine = ref<number | null>(null);
 const contentPane = ref<HTMLElement | null>(null);
 const workspacePane = ref<HTMLElement | null>(null);
 
@@ -419,7 +424,7 @@ const nextExerciseTarget = computed(() => {
 
 const safeSkeleton = computed(() => activeExercise.value.hints.skeleton);
 
-const taskChecklist = computed(() => buildTaskChecklist(activeExercise.value));
+const taskChecklist = computed(() => activeExercise.value.hints.checklist ?? buildTaskChecklist(activeExercise.value));
 
 function loadProgress() {
   try {
@@ -494,6 +499,7 @@ function setActiveExercise(
   result.value = null;
   feedback.value = null;
   showHints.value = false;
+  errorLine.value = null;
   if (options.focusEditor) focusSqlEditor(options.scrollEditorIntoView);
 }
 
@@ -639,6 +645,11 @@ function buildTaskChecklist(exercise: Exercise) {
     items.push("這題不要用 SELECT *，請明確寫出任務要看的欄位。");
   }
 
+  // 把這題專屬的 requiredPatterns 條件也列進檢查清單（這些是每題人工寫好的具體要求）。
+  for (const requiredPattern of exercise.requiredPatterns || []) {
+    items.push(requiredPattern.label);
+  }
+
   if (exercise.type === "mutation") {
     items.push("修改、新增或刪除前，先確認 WHERE 或 VALUES 已經鎖定任務指定資料，再按「執行」或「送出驗收」。");
   } else {
@@ -659,7 +670,7 @@ function focusSqlEditor(scrollIntoView = false) {
     }
 
     window.requestAnimationFrame(() => {
-      sqlEditor.value?.focus({ preventScroll: true });
+      sqlEditorComp.value?.focus();
     });
   });
 }
@@ -979,6 +990,12 @@ function formatSqlPosition(sqlText: string, position: string | number | undefine
   return `位置在第 ${line} 行第 ${column} 個字附近。`;
 }
 
+function getSqlErrorLine(error: unknown, sqlText: string): number | null {
+  const index = Number(getErrorField(error, "position")) - 1;
+  if (!Number.isFinite(index) || index < 0) return null;
+  return sqlText.slice(0, index).split(/\r?\n/).length;
+}
+
 function formatSqlError(error: unknown, sqlText: string) {
   const message = getErrorMessage(error);
   const code = getErrorField(error, "code");
@@ -1055,6 +1072,7 @@ function formatSqlError(error: unknown, sqlText: string) {
 async function resetDatabase() {
   if (!database.value) return;
   await database.value.exec(schemaSql);
+  sandboxOwner.value = null;
 }
 
 async function runSql() {
@@ -1063,6 +1081,7 @@ async function runSql() {
   feedback.value = null;
   result.value = null;
   lessonJustCompleted.value = false;
+  errorLine.value = null;
 
   try {
     const sqlText = sql.value.trim();
@@ -1070,45 +1089,48 @@ async function runSql() {
 
     const exercise = activeExercise.value;
     const featureSql = getFeatureSql(sqlText);
-    if (exercise.type === "query" && !/^(SELECT|WITH|EXPLAIN)\b/i.test(featureSql.trim())) {
-      feedback.value = {
-        type: "fail",
-        title: "這題只允許查詢",
-        body: "這是查詢任務，按「執行」時只接受 SELECT、WITH 或 EXPLAIN。要練 INSERT、UPDATE、DELETE 時請切到對應任務。"
-      };
-      return;
-    }
+    const isReadOnly = /^(SELECT|WITH|EXPLAIN)\b/i.test(featureSql.trim());
 
-    if (exercise.type === "query" && hasUnsafeWriteKeyword(sqlText)) {
-      feedback.value = {
-        type: "fail",
-        title: "這題只能安全查詢",
-        body: "查詢任務的「執行」不接受 INSERT、UPDATE、DELETE、DROP 等會改資料的語法。請改用 SELECT 查詢資料。"
-      };
-      return;
-    }
-
-    if (exercise.type === "mutation") {
-      const featureProblems = checkSqlFeatures(sqlText, exercise);
-      if (featureProblems.length > 0) {
+    if (exercise.type === "query") {
+      // 查詢題：只允許讀，且每次都從乾淨種子資料執行，確保結果穩定。
+      if (!isReadOnly) {
         feedback.value = {
           type: "fail",
-          title: "這題還不能安全執行",
-          body: `先補齊這題的安全條件，再執行 SQL：${featureProblems.join(" ")}`
+          title: "這題只允許查詢",
+          body: "這是查詢任務，按「執行」時只接受 SELECT、WITH 或 EXPLAIN。要練 INSERT、UPDATE、DELETE 時請切到對應任務。"
         };
         return;
       }
-    }
-
-    await resetDatabase();
-
-    if (/^(SELECT|WITH|EXPLAIN)\b/i.test(sqlText)) {
+      if (hasUnsafeWriteKeyword(sqlText)) {
+        feedback.value = {
+          type: "fail",
+          title: "這題只能安全查詢",
+          body: "查詢任務的「執行」不接受 INSERT、UPDATE、DELETE、DROP 等會改資料的語法。請改用 SELECT 查詢資料。"
+        };
+        return;
+      }
+      await resetDatabase();
       const queryResult = await database.value.query(sqlText);
       const rows = queryResult.rows as SqlRow[];
       result.value = { rows, message: `已從本題初始資料執行查詢，共 ${rows.length} 筆。` };
     } else {
-      await database.value.exec(sqlText);
-      result.value = { rows: [], message: "已從本題初始資料執行 SQL。送出驗收時會用乾淨資料檢查整個資料庫狀態。" };
+      // 修改題：用持久沙箱，讓「改一筆 → 再 SELECT 查回來確認」成立。
+      // 只有換到別題、或這個沙箱還不屬於本題時才重置，否則保留前一次的修改。
+      if (sandboxOwner.value !== exercise.id) {
+        await resetDatabase();
+        sandboxOwner.value = exercise.id;
+      }
+      if (isReadOnly) {
+        const queryResult = await database.value.query(sqlText);
+        const rows = queryResult.rows as SqlRow[];
+        result.value = { rows, message: `沙箱目前狀態的查詢結果，共 ${rows.length} 筆。` };
+      } else {
+        await database.value.exec(sqlText);
+        result.value = {
+          rows: [],
+          message: "已套用到沙箱。可以再寫一句 SELECT 按「執行」查回來確認；沙箱會保留你的修改，直到換題或按「重置本題」。送出驗收時系統會用乾淨資料重新檢查。"
+        };
+      }
     }
   } catch (error) {
     feedback.value = {
@@ -1116,6 +1138,7 @@ async function runSql() {
       title: "SQL 執行失敗",
       body: formatSqlError(error, sql.value.trim())
     };
+    errorLine.value = getSqlErrorLine(error, sql.value.trim());
   } finally {
     isBusy.value = false;
   }
@@ -1127,6 +1150,7 @@ async function submitSql() {
   feedback.value = null;
   result.value = null;
   lessonJustCompleted.value = false;
+  errorLine.value = null;
   attemptTick.value += 1;
   const previousStreak = streak.value;
   streak.value = 0;
@@ -1223,6 +1247,7 @@ async function submitSql() {
       title: "驗收失敗",
       body: formatSqlError(error, sql.value.trim())
     };
+    errorLine.value = getSqlErrorLine(error, sql.value.trim());
   } finally {
     isBusy.value = false;
   }
@@ -1234,6 +1259,7 @@ async function resetCurrentExercise() {
   feedback.value = null;
   result.value = null;
   lessonJustCompleted.value = false;
+  errorLine.value = null;
   sql.value = activeExercise.value.starterSql;
   saveExerciseDraft(activeExercise.value.id, activeExercise.value.starterSql);
 
@@ -1253,32 +1279,6 @@ async function resetCurrentExercise() {
   } finally {
     isBusy.value = false;
   }
-}
-
-function handleEditorKeydown(event: KeyboardEvent) {
-  if (event.key === "Tab") {
-    event.preventDefault();
-    insertTab(event);
-    return;
-  }
-
-  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-    event.preventDefault();
-    if (isBusy.value || !isReady.value) return;
-    if (event.shiftKey) void submitSql();
-    else void runSql();
-  }
-}
-
-function insertTab(event: KeyboardEvent) {
-  const editor = event.target as HTMLTextAreaElement;
-  const start = editor.selectionStart;
-  const end = editor.selectionEnd;
-  sql.value = `${editor.value.slice(0, start)}  ${editor.value.slice(end)}`;
-  nextTick(() => {
-    if (!sqlEditor.value) return;
-    sqlEditor.value.selectionStart = sqlEditor.value.selectionEnd = start + 2;
-  });
 }
 
 function focusSearch(event: KeyboardEvent) {

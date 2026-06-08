@@ -17,6 +17,7 @@ export interface ExerciseHints {
   direction: string;
   skeleton: string;
   answer: string;
+  checklist?: string[];
 }
 
 export interface Exercise {
