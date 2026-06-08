@@ -4,8 +4,8 @@
       <div class="brand">
         <div class="brand-mark" aria-hidden="true">🐘</div>
         <div class="brand-text">
-          <div class="brand-title">PostgreSQL 正體中文練習手冊</div>
-          <div class="brand-subtitle">練習室 MVP · 講義 + 沙箱</div>
+          <div class="brand-title">PostgreSQL 練習手冊</div>
+          <div class="brand-subtitle">正體中文 · 講義 + 沙箱</div>
         </div>
       </div>
       <div class="search-wrap">
