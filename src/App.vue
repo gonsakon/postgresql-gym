@@ -536,10 +536,10 @@ const NAV_W_KEY = "postgresql-gym-mvp-nav-width-v1";
 const WS_W_KEY = "postgresql-gym-mvp-workspace-width-v1";
 
 const coachImages = {
-  normal: "/images/coach/normal.png",
-  confused: "/images/coach/confused.png",
-  praise: "/images/coach/praise.png",
-  proud: "/images/coach/proud.png"
+  normal: `${import.meta.env.BASE_URL}images/coach/normal.png`,
+  confused: `${import.meta.env.BASE_URL}images/coach/confused.png`,
+  praise: `${import.meta.env.BASE_URL}images/coach/praise.png`,
+  proud: `${import.meta.env.BASE_URL}images/coach/proud.png`
 } as const;
 
 type CoachState = keyof typeof coachImages;

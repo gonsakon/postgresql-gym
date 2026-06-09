@@ -39,10 +39,10 @@ const props = defineProps<{
 const emit = defineEmits<{ (e: "done"): void }>();
 
 const coachImages: Record<string, string> = {
-  normal: "/images/coach/normal.png",
-  praise: "/images/coach/praise.png",
-  proud: "/images/coach/proud.png",
-  confused: "/images/coach/confused.png"
+  normal: `${import.meta.env.BASE_URL}images/coach/normal.png`,
+  praise: `${import.meta.env.BASE_URL}images/coach/praise.png`,
+  proud: `${import.meta.env.BASE_URL}images/coach/proud.png`,
+  confused: `${import.meta.env.BASE_URL}images/coach/confused.png`
 };
 
 const index = ref(0);
