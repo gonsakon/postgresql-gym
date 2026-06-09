@@ -1,10 +1,8 @@
-# PostgreSQL Gym MVP
+# PostgreSQL Gym
 
-Vue 3 + Vite + TypeScript 的文件式 PostgreSQL 練習手冊原型。第一版用 PGlite 在瀏覽器中執行 PostgreSQL，提供教學章節、SQL 編輯器、驗收與進度打勾。
+Vue 3 + Vite + TypeScript 的文件式 PostgreSQL 練習手冊。用 PGlite 在瀏覽器裡跑真正的 PostgreSQL，提供教學章節、SQL 編輯器、結果驗收與進度打勾，海姐（coach-hex）陪跑。
 
-目前先做「新手模式」：練習題貼著既有影音課程章節走，先用 `members` 單表建立手感，再逐步進到 WHERE、ORDER BY、INSERT、UPDATE。JOIN、GROUP BY、子查詢與事故情境先保留為後續章節。
-
-設計動機與當初的取捨見 [WHY.md](WHY.md)。
+12 個章節由淺到深：認識資料表 → SELECT / WHERE / ORDER BY → 寫入 → JOIN → GROUP BY → 子查詢，並穿插情境式的「事故調查」關。進階關（06–11）的資料表對齊 Node.js 課程最終作業（健身房預約 SaaS），學生練的資料形狀＝之後要寫的專案。
 
 ## Run
 
