@@ -28,10 +28,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      # 第一次跑會自動把 repo 的 Pages 來源設成「GitHub Actions」，不用先手動進設定開。
+      # Pages 已在 repo 設定為「GitHub Actions」來源，這裡只讀設定、不嘗試建立。
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
