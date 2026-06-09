@@ -37,6 +37,11 @@ export interface Exercise {
   checks?: ExerciseCheck[];
 }
 
+export interface IntroBeat {
+  text: string;
+  art?: "normal" | "praise" | "proud" | "confused";
+}
+
 export interface Lesson {
   id: string;
   section: string;
@@ -49,6 +54,10 @@ export interface Lesson {
   syntax: string;
   isCase?: boolean;
   caseBrief?: string;
+  /** 情境關卡：本關相關資料表（第一個視為主表，給透視鏡聚焦） */
+  tables?: string[];
+  /** 情境關卡：開場視覺小說腳本（海姐逐拍鋪情境 + 帶玩家認識 DB 狀態） */
+  introScript?: IntroBeat[];
   exercises: Exercise[];
 }
 

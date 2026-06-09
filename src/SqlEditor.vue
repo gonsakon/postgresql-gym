@@ -64,9 +64,14 @@ const schema = {
     "created_at",
     "note"
   ],
-  coaches: ["id", "name", "email", "specialty", "hourly_rate"],
-  courses: ["id", "coach_id", "title", "branch", "capacity", "price", "starts_at"],
-  course_bookings: ["id", "member_id", "course_id", "status", "booked_at", "paid_amount"]
+  users: ["id", "name", "email", "role", "created_at", "updated_at"],
+  skills: ["id", "name", "created_at"],
+  coaches: ["id", "user_id", "experience_years", "description", "profile_image_url", "created_at", "updated_at"],
+  coach_link_skill: ["id", "coach_id", "skill_id", "created_at"],
+  courses: ["id", "user_id", "skill_id", "name", "description", "start_at", "end_at", "max_participants", "meeting_url", "created_at", "updated_at"],
+  course_bookings: ["id", "user_id", "course_id", "booking_at", "join_at", "leave_at", "cancelled_at", "cancellation_reason", "created_at"],
+  credit_purchases: ["id", "user_id", "credit_package_id", "purchased_credits", "price_paid", "created_at", "purchase_at"],
+  orders: ["id", "user_id", "credit_package_id", "merchant_order_no", "amount", "purchased_credits", "payment_status", "newebpay_trade_no", "payment_type", "paid_at", "created_at"]
 };
 
 const darkTheme = EditorView.theme(

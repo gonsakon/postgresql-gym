@@ -1052,9 +1052,15 @@ button:disabled {
 
 .order-board-head {
   display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.order-board-titlerow {
+  display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-bottom: 12px;
 }
 
 .order-board-head strong {
@@ -1221,6 +1227,21 @@ button:disabled {
   color: #536074;
   font-size: 12px;
   white-space: normal;
+}
+
+.schema-other {
+  margin-top: 12px;
+}
+
+.schema-other > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: #6b7280;
+  padding: 4px 0;
+}
+
+.schema-other > summary:hover {
+  color: var(--ink, #1f2937);
 }
 
 .roadmap-list {
@@ -1549,5 +1570,760 @@ button:disabled {
     align-items: flex-start;
     flex-direction: column;
     gap: 2px;
+  }
+}
+
+/* ============================================================
+   情境關卡：沉浸場景（夜班控制室 / 事故調查室）
+   只在 isCase 關卡渲染，深色，與既有淺色三欄完全隔離。
+   ============================================================ */
+.case-stage {
+  --cs-ink: #e8eef8;
+  --cs-muted: #8da3c4;
+  --cs-line: rgba(120, 150, 200, 0.18);
+  --cs-panel: rgba(22, 32, 50, 0.72);
+  --cs-teal: #58d2c0;
+  --cs-amber: #f6b35a;
+  --cs-green: #6fd08a;
+  --cs-red: #e8786e;
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  color: var(--cs-ink);
+  background:
+    radial-gradient(1100px 600px at 80% -10%, rgba(88, 210, 192, 0.1), transparent 60%),
+    radial-gradient(900px 600px at 10% 110%, rgba(246, 179, 90, 0.1), transparent 60%),
+    linear-gradient(160deg, #0c1422, #0a1019 60%, #0b1320);
+}
+
+/* 頂列 */
+.cs-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px clamp(16px, 3vw, 36px);
+  background: rgba(10, 16, 26, 0.82);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--cs-line);
+}
+.cs-venue {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cs-venue-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1f6f64, #58d2c0);
+  font-size: 19px;
+}
+.cs-venue-name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+.cs-venue-sub {
+  font-size: 12px;
+  color: var(--cs-muted);
+}
+.cs-topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cs-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.25;
+  padding: 4px 14px;
+  border-radius: 10px;
+  background: var(--cs-panel);
+  border: 1px solid var(--cs-line);
+}
+.cs-progress span {
+  font-size: 11px;
+  color: var(--cs-muted);
+}
+.cs-progress b {
+  font-size: 14px;
+  color: var(--cs-teal);
+  font-family: var(--mono);
+}
+.cs-ghost-btn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--cs-panel);
+  border: 1px solid var(--cs-line);
+  color: var(--cs-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+.cs-ghost-btn:hover {
+  border-color: rgba(88, 210, 192, 0.5);
+}
+
+/* 主區：海姐側欄 + 場景欄 */
+.cs-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px clamp(16px, 3vw, 36px);
+  align-items: start;
+}
+.cs-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: 0;
+}
+.cs-coach {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--cs-panel);
+  border: 1px solid var(--cs-line);
+  backdrop-filter: blur(8px);
+}
+.cs-coach img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  border: 2px solid var(--cs-teal);
+  box-shadow: 0 0 16px rgba(88, 210, 192, 0.35);
+  flex-shrink: 0;
+  background: #14202f;
+}
+.cs-coach-name {
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 3px;
+}
+.cs-coach-copy p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #d3deef;
+}
+.cs-casefile {
+  border: 1px dashed rgba(246, 179, 90, 0.42);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(246, 179, 90, 0.06);
+}
+.cs-casefile h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--cs-amber);
+  letter-spacing: 0.5px;
+}
+.cs-casefile p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #d3deef;
+}
+.cs-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--cs-panel);
+  border: 1px solid var(--cs-line);
+}
+.cs-tasks-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--cs-muted);
+  margin-bottom: 4px;
+}
+.cs-tasks-head b {
+  color: var(--cs-teal);
+  font-family: var(--mono);
+}
+.cs-task {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #cdd8ec;
+  text-align: left;
+  font-weight: 600;
+}
+.cs-task:hover {
+  background: rgba(255, 255, 255, 0.04);
+  transform: none;
+}
+.cs-task.active {
+  background: rgba(31, 111, 100, 0.28);
+  border-color: rgba(88, 210, 192, 0.5);
+}
+.cs-task-no {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(12, 20, 34, 0.7);
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--cs-muted);
+}
+.cs-task.done .cs-task-no {
+  background: rgba(111, 208, 138, 0.2);
+  color: var(--cs-green);
+}
+.cs-task-title {
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.cs-stage-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  min-width: 0;
+  align-content: start;
+}
+/* 訂單牆與資料庫透視鏡左右並排，透視鏡進場就在視線內、不互相擠壓（解「捲中捲」擁擠）。
+   門檻 1000px：搭配下方 ≤1240 側欄收頂，讓筆電寬度也維持並排、透視鏡不被擠到看板下面。 */
+@media (min-width: 1000px) {
+  .cs-stage-col:not(.no-board) {
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+/* 無看板的情境關（如事故調查室）：透視鏡占整欄，但收斂寬度＋置中，
+   避免「資料預覽」以外的分頁全寬拉伸出空洞；欄位列名稱左靠不拉伸（解「左實右虛」）。 */
+.cs-stage-col.no-board {
+  grid-template-columns: minmax(0, 980px);
+  justify-content: center;
+}
+/* 欄位列：名稱左靠不拉伸、用途接在同一列填滿右側（解全寬「左實右虛」），CHECK 仍獨立整列 */
+.cs-stage-col.no-board .dbi-col {
+  grid-template-columns: minmax(140px, max-content) 64px 56px minmax(0, 1fr);
+  column-gap: 16px;
+}
+.cs-stage-col.no-board .dbi-col-purpose {
+  grid-column: 4;
+  margin-top: 0;
+  align-self: center;
+}
+
+/* 終端機區 */
+.cs-terminal {
+  flex-shrink: 0;
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 0 clamp(16px, 3vw, 36px) 16px;
+  padding: 14px 16px;
+  border-radius: 18px 18px 0 0;
+  background: rgba(10, 16, 26, 0.82);
+  border: 1px solid var(--cs-line);
+  box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.4);
+}
+.cs-term-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.cs-term-step {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--cs-teal);
+  margin-right: 8px;
+}
+.cs-term-title {
+  font-size: 15px;
+  font-weight: 800;
+}
+.cs-term-task {
+  margin: 6px 0 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #d3deef;
+}
+.cs-reset {
+  padding: 7px 12px;
+  border-radius: 9px;
+  background: transparent;
+  border: 1px solid var(--cs-line);
+  color: var(--cs-muted);
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.cs-reset:hover:not(:disabled) {
+  color: var(--cs-ink);
+  border-color: var(--cs-red);
+}
+.cs-term-shell {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--cs-line);
+  background: #0c1320;
+}
+.cs-term-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--cs-line);
+}
+.cs-term-dots {
+  display: flex;
+  gap: 6px;
+}
+.cs-term-dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.cs-term-dots i:nth-child(1) {
+  background: #e8786e;
+}
+.cs-term-dots i:nth-child(2) {
+  background: #f6b35a;
+}
+.cs-term-dots i:nth-child(3) {
+  background: #6fd08a;
+}
+.cs-term-bar b {
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--cs-muted);
+}
+.cs-editor {
+  height: clamp(140px, 19vh, 240px);
+}
+.cs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--cs-line);
+}
+.cs-run,
+.cs-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1px solid transparent;
+}
+.cs-run {
+  background: linear-gradient(135deg, #1f6f64, #2aa392);
+  color: #fff;
+}
+.cs-submit {
+  background: rgba(111, 208, 138, 0.14);
+  color: var(--cs-green);
+  border-color: rgba(111, 208, 138, 0.4);
+}
+.cs-submit.ready {
+  background: linear-gradient(135deg, #2f8f5a, #6fd08a);
+  color: #06210f;
+}
+.cs-status {
+  font-size: 12px;
+  color: var(--cs-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cs-hint-toggle {
+  margin-left: auto;
+  padding: 8px 13px;
+  border-radius: 9px;
+  background: transparent;
+  border: 1px solid var(--cs-line);
+  color: var(--cs-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.cs-hint-toggle:hover,
+.cs-hint-toggle.nudge {
+  color: var(--cs-amber);
+  border-color: rgba(246, 179, 90, 0.5);
+}
+.cs-toolbar .btn-kbd {
+  font-size: 10px;
+  opacity: 0.7;
+  font-family: var(--mono);
+}
+.cs-submit:disabled {
+  opacity: 0.4;
+}
+.cs-toolbar-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 8px 2px 0;
+  padding: 0;
+  font-size: 11.5px;
+  color: var(--cs-muted);
+}
+.cs-toolbar-hint b {
+  color: #cdd8ec;
+  font-weight: 700;
+}
+
+/* 終端機輸出：回饋 / 提示 / 結果 */
+.cs-output {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cs-feedback {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--cs-line);
+}
+.cs-feedback.pass {
+  background: rgba(47, 143, 90, 0.14);
+  border-color: rgba(111, 208, 138, 0.4);
+}
+.cs-feedback.fail {
+  background: rgba(166, 66, 58, 0.14);
+  border-color: rgba(232, 120, 110, 0.42);
+}
+.cs-feedback-coach {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  flex-shrink: 0;
+  background: #14202f;
+}
+.cs-feedback-title {
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.cs-feedback-body {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #e3ebf7;
+}
+.cs-feedback-raw {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--cs-muted);
+}
+.cs-feedback-raw code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+.cs-feedback-coach-line {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--cs-muted);
+}
+.cs-milestone {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cs-amber);
+}
+.cs-next {
+  margin-top: 10px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1f6f64, #2aa392);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  border: none;
+}
+.cs-hints {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(20, 30, 48, 0.6);
+  border: 1px solid var(--cs-line);
+  font-size: 13px;
+}
+.cs-hints summary {
+  cursor: pointer;
+  color: #cdd8ec;
+  padding: 4px 0;
+  font-weight: 700;
+}
+.cs-hints p {
+  margin: 4px 0 8px;
+  color: #d3deef;
+  line-height: 1.6;
+}
+.cs-checklist {
+  margin: 4px 0 8px;
+  padding-left: 18px;
+  color: #d3deef;
+  line-height: 1.7;
+}
+.case-stage .syntax {
+  background: #0c1320;
+  border: 1px solid var(--cs-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #c3e88d;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  overflow-x: auto;
+}
+.cs-result-note {
+  font-size: 13px;
+  color: var(--cs-muted);
+  padding: 4px 2px;
+}
+.cs-result-table-wrap {
+  overflow: auto;
+  max-height: 260px;
+  border-radius: 10px;
+  border: 1px solid var(--cs-line);
+}
+.cs-result-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+  font-family: var(--mono);
+}
+.cs-result-table th,
+.cs-result-table td {
+  padding: 7px 11px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--cs-line);
+}
+.cs-result-table th {
+  position: sticky;
+  top: 0;
+  background: #0f1726;
+  color: #9fb0cc;
+  font-weight: 700;
+}
+.cs-result-table td {
+  color: #cdd8ec;
+}
+.cs-empty {
+  font-size: 13px;
+  color: var(--cs-muted);
+  line-height: 1.6;
+  padding: 4px 2px;
+}
+
+/* 課程選單 overlay */
+.cs-nav-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(6, 10, 18, 0.6);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: flex-end;
+}
+.cs-nav-panel {
+  width: min(360px, 86vw);
+  height: 100%;
+  overflow-y: auto;
+  padding: 18px;
+  background: linear-gradient(180deg, #101a2b, #0b1320);
+  border-left: 1px solid var(--cs-line);
+}
+.cs-nav-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.cs-nav-head b {
+  font-size: 16px;
+}
+.cs-nav-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--cs-panel);
+  border: 1px solid var(--cs-line);
+  color: var(--cs-ink);
+}
+.cs-nav-group h4 {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  color: var(--cs-muted);
+  letter-spacing: 0.5px;
+}
+.cs-nav-lesson {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  margin-bottom: 4px;
+  border-radius: 9px;
+  background: rgba(20, 30, 48, 0.5);
+  border: 1px solid transparent;
+  color: #cdd8ec;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+}
+.cs-nav-lesson:hover {
+  border-color: rgba(88, 210, 192, 0.4);
+  transform: none;
+}
+.cs-nav-lesson.active {
+  background: rgba(31, 111, 100, 0.28);
+  border-color: rgba(88, 210, 192, 0.5);
+}
+.cs-nav-lesson small {
+  color: var(--cs-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+/* 訂單牆：深色場景覆寫 + 來源錨點 */
+.order-board-source {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: #04201c;
+  background: var(--cs-teal, #58d2c0);
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+.case-stage .order-lane {
+  grid-template-columns: 116px minmax(0, 1fr);
+}
+.case-stage .lane-label {
+  height: auto;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  padding: 5px 10px;
+  border-radius: 10px;
+}
+.lane-zh {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.lane-status {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.72;
+}
+.case-stage .order-board {
+  max-width: none;
+  margin: 0;
+  background: var(--cs-panel);
+  border: 1px solid var(--cs-line);
+  box-shadow: none;
+  backdrop-filter: blur(8px);
+}
+.case-stage .order-board-head strong {
+  color: var(--cs-ink);
+}
+.case-stage .order-board-sub {
+  color: var(--cs-muted);
+}
+.case-stage .order-board-sub code {
+  font-family: var(--mono);
+  color: #cdd8ec;
+}
+.case-stage .order-card {
+  background: rgba(12, 20, 34, 0.65);
+  border-color: var(--cs-line);
+  color: #cdd8ec;
+}
+.case-stage .oc-name {
+  color: var(--cs-ink);
+}
+.case-stage .oc-amt {
+  color: var(--cs-muted);
+}
+.case-stage .order-card.flash {
+  animation: cs-order-flash 1.4s ease;
+}
+@keyframes cs-order-flash {
+  0% {
+    box-shadow: 0 0 0 2px var(--cs-teal, #58d2c0);
+    transform: scale(1.08);
+  }
+  100% {
+    box-shadow: none;
+    transform: scale(1);
+  }
+}
+
+/* 筆電寬度（≤1240）：海姐側欄從左欄收成頂部一條橫排，把整個寬度讓給場景欄，
+   讓訂單牆＋透視鏡能並排、不被壓窄。任務列在橫排時限高內捲，不把場景推到 fold 以下。 */
+@media (max-width: 1240px) {
+  .cs-main {
+    grid-template-columns: 1fr;
+  }
+  .cs-side {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+  .cs-coach {
+    flex: 1 1 280px;
+  }
+  .cs-casefile {
+    flex: 1 1 240px;
+  }
+  .cs-tasks {
+    flex: 2 1 320px;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+}
+@media (max-width: 640px) {
+  .cs-side {
+    flex-direction: column;
+  }
+  .cs-tasks {
+    max-height: none;
   }
 }

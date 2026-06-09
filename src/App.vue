@@ -1,5 +1,214 @@
 <template>
-  <div class="app-shell" :class="{ 'nav-collapsed': navCollapsed }" :style="appShellStyle">
+  <!-- ===== 情境關卡：沉浸場景 ===== -->
+  <div v-if="activeLesson.isCase" class="case-stage">
+    <IntroSequence
+      v-if="showIntro && activeLesson.introScript"
+      :label="activeLesson.label"
+      :title="activeLesson.title"
+      :beats="activeLesson.introScript"
+      @done="finishIntro"
+    />
+
+    <header class="cs-topbar">
+      <div class="cs-venue">
+        <span class="cs-venue-icon">{{ sceneIcon }}</span>
+        <div>
+          <div class="cs-venue-name">{{ sceneVenue }}</div>
+          <div class="cs-venue-sub">{{ activeLesson.title }}</div>
+        </div>
+      </div>
+      <div class="cs-topbar-right">
+        <div class="cs-progress">
+          <span>今晚進度</span><b>{{ activeLessonProgress.done }} / {{ activeLessonProgress.total }}</b>
+        </div>
+        <button class="cs-ghost-btn" type="button" @click="replayIntro">劇情重看</button>
+        <button class="cs-ghost-btn" type="button" @click="caseNavOpen = true">☰ 課程選單</button>
+      </div>
+    </header>
+
+    <div class="cs-main">
+      <aside class="cs-side">
+        <div class="cs-coach">
+          <img :src="coachImages[feedbackCoachState]" alt="海姐" />
+          <div class="cs-coach-copy">
+            <div class="cs-coach-name">海姐</div>
+            <p>{{ caseCoachLine }}</p>
+          </div>
+        </div>
+        <div v-if="activeLesson.caseBrief" class="cs-casefile">
+          <h4>📋 今晚的案子</h4>
+          <p>{{ activeLesson.caseBrief }}</p>
+        </div>
+        <div class="cs-tasks">
+          <div class="cs-tasks-head">
+            <span>任務步驟</span><b>{{ activeLessonProgress.done }}/{{ activeLessonProgress.total }}</b>
+          </div>
+          <button
+            v-for="(exercise, i) in activeLesson.exercises"
+            :key="exercise.id"
+            class="cs-task"
+            :class="{ active: exercise.id === activeExercise.id, done: completed.has(exercise.id) }"
+            type="button"
+            @click="selectExercise(activeLesson.id, exercise.id)"
+          >
+            <span class="cs-task-no">{{ completed.has(exercise.id) ? "✓" : i + 1 }}</span>
+            <span class="cs-task-title">{{ exercise.title }}</span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="cs-stage-col" :class="{ 'no-board': !hasBoard }">
+        <OrderBoard v-if="hasBoard" :db="database" :refresh-key="boardTick" />
+        <DbInspector
+          ref="dbInspectorRef"
+          :db="database"
+          :refresh-key="boardTick"
+          :tables="activeLesson.tables"
+          :scene-key="activeLesson.id"
+        />
+      </div>
+    </div>
+
+    <div class="cs-terminal">
+      <div class="cs-term-head">
+        <div class="cs-term-headline">
+          <span class="cs-term-step">任務 {{ activeExerciseIndex + 1 }}／{{ activeLessonProgress.total }}</span>
+          <span class="cs-term-title">{{ activeExercise.title }}</span>
+        </div>
+        <button class="cs-reset" type="button" :disabled="isBusy" @click="resetCurrentExercise">重置本題</button>
+      </div>
+      <p class="cs-term-task">{{ activeExercise.description }}</p>
+
+      <div class="cs-term-shell">
+        <div class="cs-term-bar">
+          <span class="cs-term-dots"><i></i><i></i><i></i></span>
+          <b>{{ terminalPrompt }}</b>
+        </div>
+        <SqlEditor
+          ref="sqlEditorComp"
+          v-model="sql"
+          :error-line="errorLine"
+          class="cs-editor"
+          @run="runSql"
+          @submit="submitSql"
+        />
+        <div class="cs-toolbar">
+          <button class="cs-run" type="button" :disabled="isBusy || !isReady" @click="runSql">
+            <span aria-hidden="true">▶</span> 執行 <span class="btn-kbd">⌘↵</span>
+          </button>
+          <button
+            class="cs-submit"
+            type="button"
+            :class="{ ready: !!result }"
+            :disabled="isBusy || !isReady || !result"
+            :title="!result ? '先按「執行」看過結果，才能送出驗收' : ''"
+            @click="submitSql"
+          >
+            <span aria-hidden="true">✓</span> 送出驗收 <span class="btn-kbd">⌘⇧↵</span>
+          </button>
+          <span class="cs-status">
+            <span v-if="!isReady || isBusy" class="spinner" aria-hidden="true"></span>
+            {{ !isReady ? "沙箱初始化中…" : isBusy ? "執行中…" : "沙箱已就緒" }}
+          </span>
+          <button class="cs-hint-toggle" type="button" :class="{ nudge: feedback?.type === 'fail' }" @click="showHints = !showHints">
+            {{ showHints ? "收起提示" : feedback?.type === 'fail' ? "卡住了？看提示 →" : "需要提示？" }}
+          </button>
+        </div>
+        <p class="cs-toolbar-hint">
+          <span><b>▶ 執行</b>＝試跑看結果，不計分</span>
+          <span><b>✓ 送出驗收</b>＝判定對錯，過了打勾進下一題</span>
+        </p>
+      </div>
+
+      <div class="cs-output">
+        <div v-if="feedback" class="cs-feedback" :class="feedback.type">
+          <img class="cs-feedback-coach" :src="coachImages[feedbackCoachState]" alt="" />
+          <div>
+            <div class="cs-feedback-title">{{ feedback.title }}</div>
+            <div class="cs-feedback-body">{{ feedback.body }}</div>
+            <details v-if="feedback.raw" class="cs-feedback-raw">
+              <summary>看 PostgreSQL 原始訊息</summary>
+              <code>{{ feedback.raw }}</code>
+            </details>
+            <div v-if="lessonJustCompleted && feedback.type === 'pass'" class="cs-milestone">
+              🎉 「{{ activeLesson.title }}」整條巡完了！這一班交得很乾淨。
+            </div>
+            <div class="cs-feedback-coach-line">{{ feedbackCoachMessage }}</div>
+            <button
+              v-if="feedback.type === 'pass' && nextExerciseTarget"
+              class="cs-next"
+              type="button"
+              @click="goToNextExercise"
+            >
+              下一題：{{ nextExerciseTarget.title }} →
+            </button>
+          </div>
+        </div>
+
+        <div v-if="showHints" class="cs-hints">
+          <details open>
+            <summary>提示 1：方向提示</summary>
+            <p>{{ activeExercise.hints.direction }}</p>
+          </details>
+          <details>
+            <summary>提示 2：SQL 骨架</summary>
+            <pre class="syntax"><code>{{ safeSkeleton }}</code></pre>
+          </details>
+          <details>
+            <summary>提示 3：驗收前檢查</summary>
+            <ul class="cs-checklist">
+              <li v-for="item in taskChecklist" :key="item">{{ item }}</li>
+            </ul>
+          </details>
+        </div>
+
+        <div v-if="result?.message" class="cs-result-note">{{ result.message }}</div>
+        <div v-if="resultRows.length > 0" class="cs-result-table-wrap">
+          <table class="cs-result-table">
+            <thead>
+              <tr><th v-for="column in resultColumns" :key="column">{{ column }}</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, rowIndex) in resultRows" :key="rowIndex">
+                <td v-for="column in resultColumns" :key="column">{{ formatValue(row[column]) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-if="!result && !feedback" class="cs-empty">
+          {{ activeExercise.type === "mutation"
+            ? "這是修改題：先按「執行」套用你的 SQL（看上面訂單牆/透視鏡怎麼動），再按「送出驗收」。"
+            : "先按「執行」看結果；覺得對了再按「送出驗收」打勾。" }}
+        </div>
+      </div>
+    </div>
+
+    <div v-if="caseNavOpen" class="cs-nav-overlay" @click.self="caseNavOpen = false">
+      <div class="cs-nav-panel">
+        <div class="cs-nav-head">
+          <b>課程選單</b>
+          <button type="button" class="cs-nav-close" @click="caseNavOpen = false">✕</button>
+        </div>
+        <div v-for="group in navSections" :key="group.section" class="cs-nav-group">
+          <h4>{{ group.section }}</h4>
+          <button
+            v-for="lesson in group.lessons"
+            :key="lesson.id"
+            class="cs-nav-lesson"
+            :class="{ active: lesson.id === activeLesson.id }"
+            type="button"
+            @click="selectLesson(lesson.id)"
+          >
+            <span>{{ lesson.title }}</span>
+            <small>{{ getLessonProgress(lesson.id).done }}/{{ getLessonProgress(lesson.id).total }}</small>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 一般關卡：既有三欄工作台 ===== -->
+  <div v-else class="app-shell" :class="{ 'nav-collapsed': navCollapsed }" :style="appShellStyle">
     <button
       v-if="navCollapsed"
       class="nav-expand-fab"
@@ -82,12 +291,6 @@
         </template>
       </div>
 
-      <OrderBoard
-        v-if="activeLesson.id === 'ecommerce-case'"
-        :db="database"
-        :refresh-key="boardTick"
-      />
-
       <section class="lesson-block">
         <h2>教學重點</h2>
         <aside class="coach-card normal">
@@ -100,7 +303,7 @@
         <p>{{ activeLesson.teaching }}</p>
         <pre class="syntax"><code>{{ activeLesson.syntax }}</code></pre>
         <div class="hint-box">
-          這幾關先用 members 這張表建立手感，之後會慢慢加入 credit_packages，情境關卡還會遇到更多資料表。
+          需要時打開上方「資料表速查」，那裡只列出本關用到的表、欄位怎麼接（其餘的收在「其他資料表」裡）。
         </div>
       </section>
 
@@ -134,34 +337,23 @@
       <details class="lesson-block lesson-details schema-block">
         <summary>
           <span>資料表速查</span>
-          <span class="summary-meta">6 張資料表</span>
+          <span class="summary-meta">本關 {{ focusSchemaTables.length }} 張</span>
         </summary>
         <div class="schema-grid">
-          <div class="schema-table">
-            <strong>members</strong>
-            <code>id, name, email, level, city, credits, joined_at</code>
-          </div>
-          <div class="schema-table">
-            <strong>credit_packages</strong>
-            <code>id, name, credit_amount, price, created_at</code>
-          </div>
-          <div class="schema-table">
-            <strong>shop_orders</strong>
-            <code>id, order_no, customer_name, email, city, status, total_amount, paid_at, shipped_at, created_at, note</code>
-          </div>
-          <div class="schema-table">
-            <strong>coaches</strong>
-            <code>id, name, email, specialty, hourly_rate</code>
-          </div>
-          <div class="schema-table">
-            <strong>courses</strong>
-            <code>id, coach_id, title, branch, capacity, price, starts_at</code>
-          </div>
-          <div class="schema-table">
-            <strong>course_bookings</strong>
-            <code>id, member_id, course_id, status, booked_at, paid_amount</code>
+          <div v-for="t in focusSchemaTables" :key="t.name" class="schema-table">
+            <strong>{{ t.name }}</strong>
+            <code>{{ t.cols }}</code>
           </div>
         </div>
+        <details v-if="otherSchemaTables.length" class="schema-other">
+          <summary>其他資料表（{{ otherSchemaTables.length }}）</summary>
+          <div class="schema-grid">
+            <div v-for="t in otherSchemaTables" :key="t.name" class="schema-table">
+              <strong>{{ t.name }}</strong>
+              <code>{{ t.cols }}</code>
+            </div>
+          </div>
+        </details>
       </details>
 
       <details class="lesson-block lesson-details">
@@ -328,6 +520,9 @@
 <script setup lang="ts">
 import { PGlite } from "@electric-sql/pglite";
 import { computed, nextTick, onMounted, ref, shallowRef, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import DbInspector from "./DbInspector.vue";
+import IntroSequence from "./IntroSequence.vue";
 import OrderBoard from "./OrderBoard.vue";
 import SqlEditor from "./SqlEditor.vue";
 import { futureChapters, lessons, schemaSql, videoModules } from "./courseData";
@@ -349,14 +544,19 @@ const coachImages = {
 
 type CoachState = keyof typeof coachImages;
 
+// 路由：每關一個網址（/lesson/:lessonId）。初始關卡由網址決定，重整/深連停在原關。
+const route = useRoute();
+const router = useRouter();
+const startLesson = lessons.find((item) => item.id === route.params.lessonId) || lessons[0];
+
 const database = shallowRef<PGlite | null>(null);
 const isReady = ref(false);
 const isBusy = ref(false);
-const activeLessonId = ref(lessons[0].id);
-const activeExerciseId = ref(lessons[0].exercises[0].id);
-const sql = ref(lessons[0].exercises[0].starterSql);
+const activeLessonId = ref(startLesson.id);
+const activeExerciseId = ref(startLesson.exercises[0].id);
+const sql = ref(startLesson.exercises[0].starterSql);
 const draftSqlByExerciseId = ref<Record<string, string>>({
-  [lessons[0].exercises[0].id]: lessons[0].exercises[0].starterSql
+  [startLesson.exercises[0].id]: startLesson.exercises[0].starterSql
 });
 const completed = ref<Set<string>>(new Set(loadProgress()));
 const result = ref<ResultState | null>(null);
@@ -394,6 +594,31 @@ const activeExercise = computed<Exercise>(() => {
 });
 
 const activeLessonProgress = computed(() => getLessonProgress(activeLesson.value.id));
+
+// 資料表速查：全部 11 張表的欄位，依本關 tables 聚焦顯示，其餘收到「其他資料表」。
+const schemaTables = [
+  { name: "members", cols: "id, name, email, level, city, credits, joined_at" },
+  { name: "credit_packages", cols: "id, name, credit_amount, price, created_at" },
+  { name: "shop_orders", cols: "id, order_no, customer_name, email, city, status, total_amount, paid_at, shipped_at, created_at, note" },
+  { name: "users", cols: "id, name, email, role, created_at, updated_at" },
+  { name: "skills", cols: "id, name, created_at" },
+  { name: "coaches", cols: "id, user_id, experience_years, description, profile_image_url, created_at, updated_at" },
+  { name: "coach_link_skill", cols: "id, coach_id, skill_id, created_at" },
+  { name: "courses", cols: "id, user_id, skill_id, name, description, start_at, end_at, max_participants, meeting_url, created_at, updated_at" },
+  { name: "course_bookings", cols: "id, user_id, course_id, booking_at, join_at, leave_at, cancelled_at, cancellation_reason, created_at" },
+  { name: "credit_purchases", cols: "id, user_id, credit_package_id, purchased_credits, price_paid, created_at, purchase_at" },
+  { name: "orders", cols: "id, user_id, credit_package_id, merchant_order_no, amount, purchased_credits, payment_status, newebpay_trade_no, payment_type, paid_at, created_at" }
+];
+const focusSchemaTables = computed(() => {
+  const t = activeLesson.value.tables;
+  if (!t || !t.length) return schemaTables;
+  return schemaTables.filter((s) => t.includes(s.name));
+});
+const otherSchemaTables = computed(() => {
+  const t = activeLesson.value.tables;
+  if (!t || !t.length) return [];
+  return schemaTables.filter((s) => !t.includes(s.name));
+});
 
 const totalProgress = computed(() => {
   const total = allExercises.value.length;
@@ -648,6 +873,20 @@ function selectLesson(lessonId: string) {
   });
 }
 
+// 選關 → 更新網址
+watch(activeLessonId, (id) => {
+  if (route.params.lessonId !== id) void router.push(`/lesson/${id}`);
+});
+// 網址 → 套用關卡（上一頁/下一頁、深連、重整）
+watch(
+  () => route.params.lessonId,
+  (id) => {
+    if (typeof id === "string" && id !== activeLessonId.value && lessons.some((item) => item.id === id)) {
+      selectLesson(id);
+    }
+  }
+);
+
 function selectExercise(lessonId: string, exerciseId: string) {
   setActiveExercise(lessonId, exerciseId, { focusEditor: true, scrollEditorIntoView: isStackedLayout() });
 }
@@ -727,20 +966,31 @@ const commonColumnNames = [
   "paid_at",
   "shipped_at",
   "note",
+  "role",
+  "user_id",
+  "skill_id",
   "coach_id",
-  "title",
-  "branch",
-  "capacity",
-  "starts_at",
-  "specialty",
-  "hourly_rate",
-  "member_id",
   "course_id",
-  "booked_at",
-  "paid_amount"
+  "credit_package_id",
+  "experience_years",
+  "profile_image_url",
+  "max_participants",
+  "meeting_url",
+  "start_at",
+  "end_at",
+  "booking_at",
+  "join_at",
+  "leave_at",
+  "cancelled_at",
+  "purchased_credits",
+  "price_paid",
+  "purchase_at",
+  "merchant_order_no",
+  "amount",
+  "payment_status"
 ];
 
-const snapshotTables = ["members", "credit_packages", "shop_orders", "coaches", "courses", "course_bookings"] as const;
+const snapshotTables = ["members", "credit_packages", "shop_orders", "users", "skills", "coaches", "coach_link_skill", "courses", "course_bookings", "credit_purchases", "orders"] as const;
 
 function normalizeValue(value: SqlValue): SqlValue {
   if (value instanceof Date) {
@@ -1200,11 +1450,11 @@ function formatSqlError(error: unknown, sqlText: string) {
 
     const hintedColumn = typeof hint === "string" ? getQuotedName(hint)?.replace(/^[^.]+\./, "") : "";
     const hintText = hintedColumn ? ` PostgreSQL 猜你可能想寫 ${hintedColumn}。` : "";
-    return `找不到欄位 ${quotedName ? `"${quotedName}"` : "名稱"}。請檢查 SELECT、WHERE 或 ORDER BY 裡的欄位拼字；常用欄位包含 name, city, credits, credit_amount, price, order_no, status, total_amount, coach_id, member_id, course_id。${positionText}${hintText} ${originalText}`;
+    return `找不到欄位 ${quotedName ? `"${quotedName}"` : "名稱"}。請檢查 SELECT、WHERE 或 ORDER BY 裡的欄位拼字；常用欄位包含 name, email, role, price, credit_amount, user_id, course_id, skill_id, payment_status, amount, booking_at。${positionText}${hintText} ${originalText}`;
   }
 
   if (code === "42P01" || /relation ".+" does not exist/i.test(message)) {
-    return `找不到資料表 ${quotedName ? `"${quotedName}"` : "名稱"}。目前練習常用 members、credit_packages、shop_orders、coaches、courses、course_bookings，請檢查 FROM 後面的表名。${positionText} ${originalText}`;
+    return `找不到資料表 ${quotedName ? `"${quotedName}"` : "名稱"}。基礎關常用 members、credit_packages、shop_orders；進階關用 users、skills、coaches、coach_link_skill、courses、course_bookings、credit_purchases、orders，請檢查 FROM 後面的表名。${positionText} ${originalText}`;
   }
 
   if (code === "22P02" || /invalid input syntax/i.test(message)) {
@@ -1216,7 +1466,7 @@ function formatSqlError(error: unknown, sqlText: string) {
   }
 
   if (code === "23514" || /violates check constraint/i.test(message)) {
-    return `資料不符合欄位限制。常見限制像 level 只能是 'Basic'、'VIP'、'Suspended'；訂單 status 只能是 pending、paid、packed、shipped、cancelled、refunded；報名 status 只能是 confirmed、cancelled、waitlist；金額和堂數不能小於 0，課程容量必須大於 0。${positionText} ${originalText}`;
+    return `資料不符合欄位限制。常見限制像 members.level 只能是 'Basic'、'VIP'、'Suspended'；shop_orders.status 只能是 pending、paid、packed、shipped、cancelled、refunded；users.role 只能是 USER、COACH、ADMIN；orders.payment_status 只能是 unpaid、paid、failed；金額和點數不能小於 0。${positionText} ${originalText}`;
   }
 
   if (code === "23505" || /duplicate key value/i.test(message)) {
@@ -1225,7 +1475,7 @@ function formatSqlError(error: unknown, sqlText: string) {
   }
 
   if (code === "23503" || /foreign key constraint/i.test(message)) {
-    return `外鍵資料對不起來。這通常代表你填的 member_id、coach_id 或 course_id 在對應資料表不存在。先回頭查 members、coaches 或 courses 有沒有這個 id。${positionText} ${originalText}`;
+    return `外鍵資料對不起來。這通常代表你填的 user_id、course_id、skill_id 或 credit_package_id 在對應資料表不存在。先回頭查 users、courses、skills 或 credit_packages 有沒有這個 id。${positionText} ${originalText}`;
   }
 
   if (code === "42804" || /datatype mismatch/i.test(message)) {
@@ -1480,7 +1730,71 @@ async function initDatabase() {
   }
 }
 
+// ===== 情境關卡：沉浸場景狀態 =====
+const showIntro = ref(false);
+const caseNavOpen = ref(false);
+const dbInspectorRef = ref<{ openTo: (tab: string, table?: string) => void } | null>(null);
+
+const activeExerciseIndex = computed(() =>
+  activeLesson.value.exercises.findIndex((exercise) => exercise.id === activeExercise.value.id)
+);
+const hasBoard = computed(() => activeLesson.value.id === "ecommerce-case");
+const sceneVenue = computed(() => {
+  if (activeLesson.value.id === "ecommerce-case") return "LiveFit 物流中心 · 夜班";
+  if (activeLesson.value.id === "incident-room") return "LiveFit 事故調查室";
+  return activeLesson.value.section;
+});
+const sceneIcon = computed(() => (activeLesson.value.id === "incident-room" ? "🕵" : "🌙"));
+const terminalPrompt = computed(() =>
+  activeLesson.value.id === "incident-room" ? "investigator@livefit:~/case" : "livefit@nightshift:~/orders"
+);
+const caseCoachLine = computed(() =>
+  feedback.value?.type
+    ? feedbackCoachMessage.value
+    : activeLesson.value.coachLine || "卡住就喊我，我遞提示、不搶你鍵盤。我們一條一條來。"
+);
+
+function introSeenKey(id: string) {
+  return `postgresql-gym-mvp-intro-seen-${id}`;
+}
+function hasSeenIntro(id: string) {
+  try {
+    return localStorage.getItem(introSeenKey(id)) === "1";
+  } catch {
+    return false;
+  }
+}
+function maybeShowIntro() {
+  const lesson = activeLesson.value;
+  showIntro.value = Boolean(lesson.isCase && lesson.introScript?.length && !hasSeenIntro(lesson.id));
+}
+function finishIntro() {
+  try {
+    localStorage.setItem(introSeenKey(activeLesson.value.id), "1");
+  } catch {
+    /* ignore storage errors */
+  }
+  showIntro.value = false;
+  // 對齊開場高潮「最後看一眼真實資料」：落地直接打開透視鏡到「看真實資料」並捲到它。
+  nextTick(() => {
+    dbInspectorRef.value?.openTo("rows", activeLesson.value.tables?.[0]);
+    nextTick(() => {
+      document.querySelector(".cs-stage-col .db-inspector")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  });
+}
+function replayIntro() {
+  if (activeLesson.value.introScript?.length) showIntro.value = true;
+}
+
+watch(activeLessonId, () => {
+  caseNavOpen.value = false;
+  maybeShowIntro();
+});
+
 onMounted(() => {
   void initDatabase();
+  // 深連/重整直接進情境關時，開場視覺小說也要正常觸發
+  maybeShowIntro();
 });
 </script>

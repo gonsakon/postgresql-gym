@@ -1,13 +1,17 @@
 <template>
   <section class="order-board">
     <header class="order-board-head">
-      <strong>📦 LiveFit 訂單牆</strong>
-      <span class="order-board-sub">你的 SQL 一改，這面牆就跟著動</span>
+      <div class="order-board-titlerow">
+        <strong>📦 LiveFit 訂單牆</strong>
+        <span class="order-board-source">shop_orders ▸ 看板畫面</span>
+      </div>
+      <span class="order-board-sub">每張卡 = <code>shop_orders</code> 的一列；你改 SQL，這面牆就跟著動。</span>
     </header>
     <div class="order-lanes">
       <div v-for="lane in lanes" :key="lane.status" class="order-lane">
         <div class="lane-label" :class="'st-' + lane.status">
-          {{ lane.label }}<b>{{ lane.orders.length }}</b>
+          <span class="lane-zh">{{ lane.label }}<b>{{ lane.orders.length }}</b></span>
+          <code class="lane-status">= '{{ lane.status }}'</code>
         </div>
         <div class="lane-cards">
           <div
